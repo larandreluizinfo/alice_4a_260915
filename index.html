@@ -519,12 +519,21 @@ function loop(t) {
 }
 
 // ---------- eventos ----------
-window.addEventListener("keydown", (e) => {
-  keys[e.key.toLowerCase()] = true;
-  if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(e.key.toLowerCase())) e.preventDefault();
-  if (e.key.toLowerCase() === "p") togglePause();
+// Espaço sempre faz o Luis pular: nenhum botão focado pode "roubar" a tecla
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.tagName === "BUTTON") e.target.blur();
 });
-window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (e.code === "Space") keys[" "] = true; // garante o pulo em qualquer layout de teclado
+  if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k) || e.code === "Space") e.preventDefault();
+  if (k === "p") togglePause();
+});
+window.addEventListener("keyup", (e) => {
+  keys[e.key.toLowerCase()] = false;
+  if (e.code === "Space") keys[" "] = false;
+});
 function bindHold(id, key) {
   const el = $(id);
   const on = (e) => { e.preventDefault(); keys[key] = true; };
