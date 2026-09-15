@@ -1,25 +1,24 @@
-# alice_4a_260915 — Luis, o Macaco 🐵🪂
+# alice_4a_260915 — Luis, o Macaco 🐵 em 3D (primeira pessoa)
 
-Jogo de plataforma **infinita** em arquivo único `index.html` (Canvas, sem dependências).
+Jogo de corrida infinita **3D em primeira pessoa** em arquivo único `index.html` (Three.js via CDN, sem build).
 
 Jogar online: https://larandreluizinfo.github.io/alice_4a_260915/
 
 ## Herói
-**Luis 🐵** — corre sem fim, abre o **paraquedas 🪂 ao pular** (queda lenta, segure o pulo para planar).
+**Você é o Luis 🐵** — a câmera são os olhos dele: dá para ver os bracinhos peludos correndo e o **paraquedas 🪂 listrado abrindo em cima ao pular** (queda lenta e realista).
+
+## Cenário realista
+- Selva 3D com neblina, sol com sombras, nuvens, montanhas ao longe
+- ~70 árvores com troncos e copas variadas, trilha de terra com textura, grama
+- Cobras 🐍 que patrulham, troncos 🪵 para pular, espinhos, bananas 🍌 douradas girando
 
 ## Regras (sem fim)
-- Corra para a direita, atravesse fossos, desvie de 🌵 e 🐍
-- 🍌 coletadas na corrida vão para o **cofre 👛** ao sair/morrer
-- Score: `distância(m) + bananas*10`
-- Dificuldade aumenta com a distância
+- Corra para os lados (`←/→` ou `A/D`), pule (`Espaço/↑/W`) — velocidade e dificuldade sobem com a distância
+- 🍌 da corrida vão para o **cofre 👛** ao sair/morrer · Score: `distância(m) + bananas*10`
 
-## 🛒 Loja (compra com bananas do cofre, salva no navegador)
-- 👟 Tênis veloz (25 🍌) — +20% velocidade
-- 🪂 Paraquedas PRO (30 🍌) — queda super lenta + pulo maior
-- 🧲 Imã de banana (40 🍌) — coleta de longe
-- ❤️ Coração extra (50 🍌) — começa com 4 vidas
-- 🛡️ Escudo (60 🍌) — 1 impacto grátis por corrida
+## 🛒 Loja (salva no navegador, saldo mantido entre versões)
+- 👟 Tênis veloz (25 🍌) · 🪂 Paraquedas PRO (30 🍌) · 🧲 Imã (40 🍌) · ❤️ Coração extra (50 🍌) · 🛡️ Escudo (60 🍌)
 
 ## Controles
-- `←/→` ou `A/D` mover (há leve auto-run) · `Espaço/↑/W` pular · `P` pausar
-- No celular: botões ◀ 🪂 ▶
+- `←/→` ou `A/D` lados · `Espaço/↑/W` pular · `P` pausar · No celular: ◀ 🪂 ▶
+- Requer internet (CDN do Three.js)

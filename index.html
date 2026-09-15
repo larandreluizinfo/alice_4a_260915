@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Luis, o Macaco 🐵 — Selva Infinita + Loja</title>
+  <title>Luis, o Macaco 🐵 — 3D Primeira Pessoa</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #0b1f14; color: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 12px; }
     .wrap { width: 100%; max-width: 980px; }
-    .card { background: #122b1c; border-radius: 16px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+    .card { background: #122b1c; border-radius: 16px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.5); position: relative; }
     h1 { margin: 0 0 8px; font-size: 24px; }
     p { color: #a7c4b2; margin: 6px 0 12px; }
     #hud { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 14px; font-weight: 700; margin: 10px 0; }
     #hud span { background: #1d4030; padding: 6px 12px; border-radius: 99px; }
-    canvas { width: 100%; height: auto; border-radius: 12px; background: linear-gradient(#87ceeb, #bfe8a8 60%, #3a7d44); display: block; touch-action: none; }
+    #h-chute { background: #7c2d12 !important; display: none; }
+    #stage { position: relative; }
+    #cv3d { width: 100%; height: auto; border-radius: 12px; display: block; touch-action: none; background: #87bfe8; }
     .btn { display: inline-block; padding: 12px 20px; margin: 6px 4px 0 0; border: 0; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; background: #22c55e; color: #052e16; }
     .btn.sec { background: #334155; color: #fff; }
     .btn:disabled { opacity: .5; cursor: default; }
@@ -26,31 +28,32 @@
     small { color: #7fa08d; }
     .shop-item { display: flex; gap: 10px; align-items: center; justify-content: space-between; background: #1d4030; border-radius: 12px; padding: 10px 12px; margin: 8px 0; text-align: left; }
     .shop-item .info { flex: 1; }
-    .shop-item b { display: block; }
-    .shop-item small { display: block; }
+    #err3d { display: none; background: #7f1d1d; border-radius: 12px; padding: 12px; margin-top: 10px; }
   </style>
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
     <div id="screen-start" class="overlay">
-      <div class="big">🐵🪂</div>
-      <h1>Luis, o Macaco — Selva Infinita</h1>
-      <p>Corra sem fim! Pegue 🍌, desvie de 🌵 e 🐍.<br>Quando o Luis pula, o <b>paraquedas 🪂 abre</b> e a queda fica lenta.<br>Gaste as bananas na <b>loja</b>!</p>
+      <div class="big">🐵🎮</div>
+      <h1>Luis, o Macaco — 3D em Primeira Pessoa</h1>
+      <p>Você <b>é o Luis</b>: corra pela selva realista sem fim!<br>⛔ Desvie de troncos, 🌵 espinhos e 🐍 cobras — <b>pule com Espaço</b> e o <b>paraquedas 🪂 abre sozinho</b>.<br>🍌 Bananas viram moeda na <b>loja</b>.</p>
       <input id="player" type="text" placeholder="Seu nome (ex: Alice)" maxlength="20" />
       <br />
-      <button id="btn-start" class="btn">Começar ▶</button>
+      <button id="btn-start" class="btn">Entrar na selva ▶</button>
       <button id="btn-shop" class="btn sec">🛒 Loja (<span id="wallet-menu">0</span> 🍌)</button>
-      <p><small>Controles: ←/→ ou A/D mover · Espaço/↑/W pular (segure p/ planar) · P pausar</small></p>
+      <p><small>Controles: ←/→ ou A/D para os lados · Espaço/↑/W pular · P pausar · Mouse não necessário</small></p>
       <p><small>🏆 Recorde: <span id="best-start">—</span></small></p>
     </div>
 
     <div id="screen-shop" class="overlay" style="display:none">
       <h1>🛒 Loja do Luis</h1>
-      <p>Saldo: <b><span id="wallet-shop">0</span> 🍌</b> (bananas guardadas de todas as corridas)</p>
+      <p>Saldo: <b><span id="wallet-shop">0</span> 🍌</b></p>
       <div id="shop-list" style="text-align:left;max-width:520px;margin:0 auto"></div>
       <button id="btn-shop-back" class="btn">⬅ Voltar</button>
-      <p><small>As compras ficam salvas no navegador.</small></p>
     </div>
 
     <div id="screen-game" style="display:none">
@@ -59,9 +62,11 @@
         <span id="h-wal">👛 0</span>
         <span id="h-life">❤️❤️❤️</span>
         <span id="h-dist">📏 0m</span>
+        <span id="h-chute">🪂 PARAQUEDAS ABERTO</span>
         <span id="h-best">🏆 —</span>
       </div>
-      <canvas id="cv" width="960" height="540"></canvas>
+      <div id="stage"><canvas id="cv3d" width="960" height="540"></canvas></div>
+      <div id="err3d">⚠️ Não foi possível carregar o 3D (verifique a internet p/ o CDN do Three.js) — o resto do site continua funcionando.</div>
       <div id="touch">
         <button id="t-left">◀</button>
         <button id="t-jump">🪂</button>
@@ -71,7 +76,7 @@
         <button id="btn-pause" class="btn sec">⏸ Pausar (P)</button>
         <button id="btn-quit" class="btn sec">↩ Menu (guarda 🍌)</button>
       </div>
-      <p><small id="msg">Segure o pulo para planar de paraquedas! 🪂</small></p>
+      <p><small id="msg">Você é o Luis 🐵 — pule os troncos e plane de paraquedas!</small></p>
     </div>
 
     <div id="screen-end" class="overlay" style="display:none">
@@ -86,333 +91,471 @@
   </div>
 </div>
 
-<script>
-// ===== Loja / persistência =====
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- persistência (mesmas chaves: saldo mantido!) ----------
 const SHOP = [
-  { id: "shoes",  icon: "👟", name: "Tênis veloz",      desc: "+20% velocidade",        cost: 25 },
-  { id: "chute",  icon: "🪂", name: "Paraquedas PRO",   desc: "queda super lenta + pulo maior", cost: 30 },
-  { id: "magnet", icon: "🧲", name: "Imã de banana",    desc: "coleta de longe",        cost: 40 },
-  { id: "life",   icon: "❤️", name: "Coração extra",    desc: "começa com 4 vidas",     cost: 50 },
-  { id: "shield", icon: "🛡️", name: "Escudo",           desc: "1 impacto grátis por corrida",   cost: 60 },
+  { id: "shoes",  icon: "👟", name: "Tênis veloz",    desc: "+20% velocidade",              cost: 25 },
+  { id: "chute",  icon: "🪂", name: "Paraquedas PRO", desc: "descida super lenta + pulo maior", cost: 30 },
+  { id: "magnet", icon: "🧲", name: "Imã de banana",  desc: "atrai bananas de longe",       cost: 40 },
+  { id: "life",   icon: "❤️", name: "Coração extra",  desc: "começa com 4 vidas",           cost: 50 },
+  { id: "shield", icon: "🛡️", name: "Escudo",         desc: "1 impacto grátis por corrida", cost: 60 },
 ];
 function loadJSON(k, fb) { try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; } catch { return fb; } }
 function saveJSON(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
-function wallet() { return loadJSON("luis_wallet_v1", 0); }
-function setWallet(v) { saveJSON("luis_wallet_v1", v); }
-function owned() { return loadJSON("luis_shop_v1", {}); }
-function best() { return loadJSON("luis_best_v1", null); }
-
-// ===== Jogo infinito =====
-const W = 960, H = 540;
-const cv = document.getElementById("cv");
-const ctx = cv.getContext("2d");
-let player, plats, bananas, spikes, enemies, camX, lives, got, maxX, t0, elapsed, paused, over, invulnUntil, shieldUp, keys, raf, genX, msgTimer;
-
-function mods() {
+const wallet = () => loadJSON("luis_wallet_v1", 0);
+const setWallet = (v) => saveJSON("luis_wallet_v1", v);
+const owned = () => loadJSON("luis_shop_v1", {});
+const best = () => loadJSON("luis_best_v1", null);
+const mods = () => {
   const o = owned();
   return {
-    speed: 4.2 * (o.shoes ? 1.2 : 1),
-    jump: -13 - (o.chute ? 2 : 0),
-    magnet: o.magnet ? 70 : 34,
-    maxFall: o.chute ? 3.0 : 4.5,
-    fallGrav: o.chute ? 0.18 : 0.28,
+    speed: 11 * (o.shoes ? 1.2 : 1),
+    jumpV: 7.5 + (o.chute ? 1.2 : 0),
+    gravUp: 18, gravDown: o.chute ? 2.6 : 4.2,
+    magnet: o.magnet ? 2.6 : 1.3,
     lives: o.life ? 4 : 3,
     shield: !!o.shield,
   };
-}
+};
 
-function reset() {
-  const m = mods();
-  player = { x: 60, y: 380, vx: 0, vy: 0, w: 34, h: 40, onGround: false, face: 1, chute: false };
-  plats = [{ x: 0, y: 480, w: 600, h: 60 }, { x: 620, y: 380, w: 140, h: 20 }];
-  bananas = [{ x: 200, y: 440, taken: false }, { x: 250, y: 440, taken: false }, { x: 660, y: 340, taken: false }];
-  spikes = []; enemies = [];
-  genX = 900;
-  camX = 0; lives = m.lives; got = 0; maxX = 60;
-  t0 = performance.now(); elapsed = 0;
-  paused = false; over = false; invulnUntil = 0; shieldUp = m.shield;
-  keys = {};
-  setMsg("Segure o pulo para planar de paraquedas! 🪂");
-}
-
-function difficulty() { return Math.min(1, maxX / 6000); } // 0→1
-
-function genChunk() {
-  const d = difficulty();
-  while (genX < camX + W + 700) {
-    const gap = Math.random() < 0.25 + d * 0.15;
-    if (gap) genX += 90 + Math.random() * 60 + d * 40; // fosso
-    const w = 380 + Math.random() * 220;
-    plats.push({ x: genX, y: 480, w, h: 60 });
-    // plataforma flutuante
-    if (Math.random() < 0.7) plats.push({ x: genX + 60 + Math.random() * (w - 160), y: 340 + Math.random() * 60, w: 120, h: 20 });
-    // bananas
-    const n = 1 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < n; i++) bananas.push({ x: genX + 60 + Math.random() * (w - 80), y: 380 + Math.random() * 60, taken: false });
-    // espinhos
-    if (maxX > 700 && Math.random() < 0.35 + d * 0.3) spikes.push({ x: genX + 80 + Math.random() * (w - 160), y: 458, w: 44, h: 22 });
-    // cobra
-    if (maxX > 900 && Math.random() < 0.3 + d * 0.3) {
-      const ex1 = genX + 40, ex2 = genX + w - 60;
-      enemies.push({ x1: ex1, x2: Math.max(ex1 + 60, ex2), y: 452, w: 36, h: 28, x: ex1, dir: 1, speed: 1.6 + d * 1.4 });
-    }
-    genX += w + 40;
-  }
-  // limpa o que ficou para trás
-  const cut = camX - 300;
-  plats = plats.filter(p => p.x + p.w > cut);
-  bananas = bananas.filter(b => b.x > cut - 100 && !b.taken);
-  spikes = spikes.filter(s => s.x + s.w > cut);
-  enemies = enemies.filter(e => e.x2 > cut);
-}
-
+// ---------- UI ----------
+const $ = (id) => document.getElementById(id);
 function show(id) {
-  ["screen-start", "screen-shop", "screen-game", "screen-end"].forEach(s => document.getElementById(s).style.display = "none");
-  document.getElementById(id).style.display = "block";
+  ["screen-start", "screen-shop", "screen-game", "screen-end"].forEach(s => $(s).style.display = "none");
+  $(id).style.display = "block";
 }
-function setMsg(t) { document.getElementById("msg").textContent = t; }
-
 function showBest() {
   const b = best();
   const t = b ? `${b.name} — ${b.score} pts (${b.dist}m)` : "—";
-  document.getElementById("best-start").textContent = t;
-  document.getElementById("h-best").textContent = "🏆 " + t;
-  document.getElementById("wallet-menu").textContent = wallet();
-  document.getElementById("wallet-shop").textContent = wallet();
+  $("best-start").textContent = t;
+  $("h-best").textContent = "🏆 " + t;
+  $("wallet-menu").textContent = wallet();
+  $("wallet-shop").textContent = wallet();
+}
+function renderShop() {
+  const o = owned(), w = wallet();
+  $("wallet-shop").textContent = w;
+  const list = $("shop-list");
+  list.innerHTML = "";
+  for (const it of SHOP) {
+    const has = !!o[it.id];
+    const row = document.createElement("div"); row.className = "shop-item";
+    const info = document.createElement("div"); info.className = "info";
+    info.innerHTML = `<b>${it.icon} ${it.name} — ${it.cost} 🍌</b><small>${it.desc}${has ? " ✅ comprado" : ""}</small>`;
+    const btn = document.createElement("button"); btn.className = "btn"; btn.style.margin = "0";
+    btn.textContent = has ? "OK" : "Comprar"; btn.disabled = has || w < it.cost;
+    btn.onclick = () => {
+      const ow = owned(), wal = wallet();
+      if (ow[it.id] || wal < it.cost) return;
+      setWallet(wal - it.cost); ow[it.id] = true; saveJSON("luis_shop_v1", ow);
+      renderShop(); showBest();
+    };
+    row.appendChild(info); row.appendChild(btn); list.appendChild(row);
+  }
 }
 
-// ===== Input =====
-window.addEventListener("keydown", e => {
+// ---------- mundo 3D ----------
+let renderer, scene, camera, sun, rig, armL, armR, chute, chuteCords = [];
+let groundSegs = [], trees = [], clouds = [], mounts = [], bananas = [], obstacles = [];
+let S = null; // estado da corrida
+const keys = {};
+const AHEAD = 130, BEHIND = 20;
+
+function grassTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#3f7d3a"; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = `hsl(${95 + Math.random() * 40},${35 + Math.random() * 25}%,${22 + Math.random() * 22}%)`;
+    g.fillRect(Math.random() * 128, Math.random() * 128, 2, 2 + Math.random() * 3);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 4);
+  return t;
+}
+function dirtTexture() {
+  const c = document.createElement("canvas"); c.width = 64; c.height = 64;
+  const g = c.getContext("2d");
+  g.fillStyle = "#8a6b46"; g.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 250; i++) {
+    g.fillStyle = `hsl(30,${20 + Math.random() * 20}%,${30 + Math.random() * 18}%)`;
+    g.fillRect(Math.random() * 64, Math.random() * 64, 2, 2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 6);
+  return t;
+}
+
+function initGL() {
+  const canvas = $("cv3d");
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(960, 540, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87bfe8);
+  scene.fog = new THREE.FogExp2(0x9fc78f, 0.016); // névoa de selva = fundo realista
+
+  camera = new THREE.PerspectiveCamera(72, 960 / 540, 0.1, 400);
+
+  const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x2e5b34, 0.9);
+  scene.add(hemi);
+  sun = new THREE.DirectionalLight(0xfff2d9, 1.6);
+  sun.position.set(-18, 30, 8);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+  sun.shadow.camera.top = 25; sun.shadow.camera.bottom = -60;
+  sun.shadow.camera.far = 120;
+  scene.add(sun);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+
+  // sol visível
+  const sunBall = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfff6c9, fog: false }));
+  sunBall.position.set(-40, 55, -180); scene.add(sunBall);
+
+  // chão + trilha
+  const grass = grassTexture(), dirt = dirtTexture();
+  for (let i = 0; i < 8; i++) {
+    const seg = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshLambertMaterial({ map: grass }));
+    seg.rotation.x = -Math.PI / 2; seg.receiveShadow = true;
+    seg.position.set(0, 0, 15 - i * 30);
+    scene.add(seg); groundSegs.push(seg);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(13, 30), new THREE.MeshLambertMaterial({ map: dirt }));
+    path.rotation.x = -Math.PI / 2; path.position.set(0, 0.02, 15 - i * 30); path.receiveShadow = true;
+    scene.add(path); seg.userData.path = path;
+  }
+
+  // árvores (tronco + copas) — selva densa dos dois lados
+  const trunkG = new THREE.CylinderGeometry(0.35, 0.55, 5, 7);
+  const trunkM = new THREE.MeshLambertMaterial({ color: 0x6b4a2b });
+  for (let i = 0; i < 70; i++) {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(trunkG, trunkM);
+    trunk.position.y = 2.5; trunk.castShadow = true; g.add(trunk);
+    const n = 2 + Math.floor(Math.random() * 2);
+    for (let j = 0; j < n; j++) {
+      const r = 1.4 + Math.random() * 1.4;
+      const leaf = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 10, 8),
+        new THREE.MeshLambertMaterial({ color: new THREE.Color().setHSL(0.29 + Math.random() * 0.06, 0.5, 0.28 + Math.random() * 0.12) })
+      );
+      leaf.position.set((Math.random() - 0.5) * 2, 5 + Math.random() * 2, (Math.random() - 0.5) * 2);
+      leaf.castShadow = true; g.add(leaf);
+    }
+    placeTree(g, -AHEAD + Math.random() * (AHEAD + BEHIND));
+    scene.add(g); trees.push(g);
+  }
+
+  // montanhas ao longe + nuvens
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.Mesh(new THREE.ConeGeometry(22 + Math.random() * 18, 30 + Math.random() * 25, 6),
+      new THREE.MeshLambertMaterial({ color: 0x4a6b8a }));
+    m.position.set((Math.random() - 0.5) * 260, 8, -190 - Math.random() * 60);
+    scene.add(m); mounts.push(m);
+  }
+  for (let i = 0; i < 7; i++) {
+    const g = new THREE.Group();
+    for (let j = 0; j < 4; j++) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(2 + Math.random() * 2, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, fog: false }));
+      s.position.set(j * 3 - 4, Math.random(), Math.random() * 2); g.add(s);
+    }
+    g.position.set((Math.random() - 0.5) * 160, 32 + Math.random() * 14, -60 - Math.random() * 120);
+    scene.add(g); clouds.push(g);
+  }
+
+  // ---- Luis em 1ª pessoa: braços + paraquedas presos à câmera ----
+  rig = new THREE.Group(); scene.add(rig);
+  const fur = new THREE.MeshLambertMaterial({ color: 0x6b4a2f });
+  const skin = new THREE.MeshLambertMaterial({ color: 0xc9a07a });
+  function arm(side) {
+    const g = new THREE.Group();
+    const a = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.7, 4, 8), fur);
+    a.rotation.x = -1.1; g.add(a);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), skin);
+    hand.position.set(0, -0.15, -0.55); g.add(hand);
+    g.position.set(0.55 * side, -0.55, -1.1);
+    return g;
+  }
+  armL = arm(-1); armR = arm(1); rig.add(armL, armR);
+
+  // paraquedas: cúpula listrada + cordinhas (aparece ao pular)
+  chute = new THREE.Group();
+  const segs = 12;
+  for (let i = 0; i < segs; i++) {
+    const wedge = new THREE.Mesh(new THREE.SphereGeometry(1.5, 6, 4, (i / segs) * Math.PI * 2, (Math.PI * 2) / segs, 0, Math.PI / 2.4),
+      new THREE.MeshLambertMaterial({ color: i % 2 ? 0xd43d2a : 0xf5f0e6, side: THREE.DoubleSide }));
+    chute.add(wedge);
+  }
+  chute.position.set(0, 2.6, -1.6);
+  chute.visible = false;
+  rig.add(chute);
+
+  resetRun();
+}
+
+function placeTree(g, z) {
+  const side = Math.random() < 0.5 ? -1 : 1;
+  g.position.set(side * (8.5 + Math.random() * 14), 0, z);
+  const s = 0.8 + Math.random() * 0.9;
+  g.scale.set(s, s, s);
+}
+
+// ---------- spawning infinito ----------
+function spawnAhead() {
+  const m = mods();
+  const d = Math.min(1, S.dist / 900); // dificuldade
+  while (S.nextZ > S.pz - AHEAD) {
+    const z = S.nextZ;
+    // bananas em arco
+    if (Math.random() < 0.75) {
+      const bx = (Math.random() - 0.5) * 11;
+      const n = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) addBanana(bx, 1.1 + Math.sin((i / (n - 1)) * Math.PI) * 1.4, z - i * 2.2);
+    }
+    // obstáculos: tronco (pular) / espinho / cobra
+    const roll = Math.random();
+    if (S.dist > 30 && roll < 0.3 + d * 0.25) {
+      addObstacle(Math.random() < 0.5 ? "log" : (Math.random() < 0.5 ? "spike" : "snake"), (Math.random() - 0.5) * 11, z - 6);
+    } else if (S.dist > 120 && roll > 0.85) {
+      addObstacle("snake", (Math.random() - 0.5) * 11, z - 10);
+    }
+    S.nextZ -= 14 + Math.random() * 12 - d * 4;
+  }
+}
+function addBanana(x, y, z) {
+  let b = bananas.find(o => !o.active);
+  if (!b) {
+    const mesh = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffd21f, emissive: 0x7a5b00, emissiveIntensity: 0.5, roughness: 0.4 });
+    for (let i = 0; i < 3; i++) {
+      const f = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.11, 8, 12, Math.PI * 1.2), mat);
+      f.position.set((i - 1) * 0.22, 0, 0); f.rotation.z = 0.6 + i * 0.25; f.castShadow = true;
+      mesh.add(f);
+    }
+    scene.add(mesh);
+    b = { mesh, active: false };
+    bananas.push(b);
+  }
+  b.active = true; b.x = x; b.y = y; b.z = z;
+  b.mesh.visible = true; b.mesh.position.set(x, y, z);
+}
+function addObstacle(kind, x, z) {
+  let o = obstacles.find(o => !o.active);
+  if (!o) {
+    const g = new THREE.Group(); scene.add(g);
+    o = { g, active: false, kind: "log", vx: 0 };
+    obstacles.push(o);
+  }
+  o.active = true; o.kind = kind; o.x = x; o.z = z; o.hitDone = false;
+  o.g.clear();
+  if (kind === "log") {
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 9, 10), new THREE.MeshLambertMaterial({ color: 0x6e4a26 }));
+    log.rotation.z = Math.PI / 2; log.position.y = 0.55; log.castShadow = true; o.g.add(log);
+    const warn = new THREE.Mesh(new THREE.BoxGeometry(9, 0.18, 0.18), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
+    warn.position.y = 1.1; o.g.add(warn);
+  } else if (kind === "spike") {
+    const mat = new THREE.MeshLambertMaterial({ color: 0x3d4a3a });
+    for (let i = -2; i <= 2; i++) {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 7), mat);
+      c.position.set(i * 0.9, 0.8, 0); c.castShadow = true; o.g.add(c);
+    }
+  } else {
+    const mat = new THREE.MeshLambertMaterial({ color: 0x2f9e44 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), mat);
+    body.scale.set(1, 0.8, 2.6); body.position.y = 0.45; body.castShadow = true; o.g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), mat);
+    head.position.set(0, 0.8, -1.2); o.g.add(head);
+    o.vx = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 1.5);
+  }
+  o.g.visible = true; o.g.position.set(x, 0, z);
+}
+
+// ---------- corrida ----------
+function resetRun() {
+  const m = mods();
+  S = { px: 0, pz: 0, py: 0, vy: 0, air: false, nextZ: -20, dist: 0, got: 0, lives: m.lives, shield: m.shield, t0: performance.now(), elapsed: 0, paused: false, over: false, invulnUntil: 0, maxSpeed: m.speed };
+  for (const b of bananas) { b.active = false; b.mesh.visible = false; }
+  for (const o of obstacles) { o.active = false; o.g.visible = false; }
+  setMsg("Você é o Luis 🐵 — pule os troncos e plane de paraquedas! 🪂");
+}
+function setMsg(t) { $("msg").textContent = t; }
+
+function hurt(msg) {
+  const now = performance.now();
+  if (now < S.invulnUntil || S.over) return;
+  if (S.shield) { S.shield = false; S.invulnUntil = now + 1500; setMsg("🛡️ Escudo salvou o Luis!"); return; }
+  S.lives--; S.invulnUntil = now + 1500;
+  setMsg(msg + ` (vidas: ${S.lives})`);
+  if (S.lives <= 0) gameOver();
+}
+
+function update(dt) {
+  if (!S || S.paused || S.over) return;
+  const m = mods();
+  S.elapsed = (performance.now() - S.t0) / 1000;
+
+  // lateral
+  const L = keys["arrowleft"] || keys["a"], R = keys["arrowright"] || keys["d"];
+  if (L) S.px -= 9 * dt;
+  if (R) S.px += 9 * dt;
+  S.px = Math.max(-6, Math.min(6, S.px));
+
+  // frente (velocidade cresce com distância)
+  const spd = m.speed + Math.min(6, S.dist / 150);
+  S.pz -= spd * dt;
+  S.dist = Math.floor(-S.pz);
+
+  // pulo + paraquedas
+  const J = keys[" "] || keys["arrowup"] || keys["w"];
+  if (J && !S.air) { S.vy = m.jumpV; S.air = true; }
+  if (S.air) {
+    S.vy -= (S.vy > 0 ? m.gravUp : m.gravDown) * dt; // descida lenta = paraquedas
+    S.py += S.vy * dt;
+    if (S.py <= 0) { S.py = 0; S.vy = 0; S.air = false; }
+  }
+  spawnAhead();
+
+  const px = S.px, py = S.py, pz = S.pz;
+  // bananas
+  for (const b of bananas) {
+    if (!b.active) continue;
+    b.mesh.rotation.y += dt * 3;
+    const dz = b.z - pz;
+    if (dz > 15 || dz < -8) { if (dz > 15) { b.active = false; b.mesh.visible = false; } continue; }
+    const dx = b.x - px, dy = b.y - (py + 1.6);
+    if (Math.hypot(dx, dz) < m.magnet && Math.abs(dy) < 1.8) {
+      b.active = false; b.mesh.visible = false; S.got++;
+    }
+  }
+  // obstáculos
+  for (const o of obstacles) {
+    if (!o.active) continue;
+    if (o.kind === "snake") {
+      o.x += o.vx * dt;
+      if (o.x > 6.5) { o.x = 6.5; o.vx *= -1; }
+      if (o.x < -6.5) { o.x = -6.5; o.vx *= -1; }
+      o.g.position.x = o.x;
+    }
+    const dz = o.z - pz;
+    if (dz > 15) { o.active = false; o.g.visible = false; continue; }
+    if (Math.abs(dz) < 1.3 && Math.abs(o.x - px) < (o.kind === "log" ? 4.6 : 1.1)) {
+      if (o.kind === "log") { if (py < 0.9) hurt("🪵 Tronco! Pule com Espaço!"); }
+      else if (o.kind === "spike") { if (py < 0.9) hurt("🌵 Espinhos!"); }
+      else { if (py < 1.0) hurt("🐍 Cobra!"); }
+    }
+  }
+
+  // recicla cenário
+  for (const s of groundSegs) {
+    if (s.position.z > pz + 30) { s.position.z -= 240; s.userData.path.position.z = s.position.z; }
+  }
+  for (const t of trees) if (t.position.z > pz + BEHIND) placeTree(t, pz - AHEAD - Math.random() * 20);
+  for (const c of clouds) { c.position.x += dt * 0.7; if (c.position.x > 100) c.position.x = -100; }
+  sun.position.set(px - 18, 30, pz + 8);
+  sun.target.position.set(px, 0, pz - 20); sun.target.updateMatrixWorld();
+
+  // câmera 1ª pessoa (olhos do Luis) + balanço de corrida
+  const t = performance.now() / 1000;
+  const bob = S.air ? 0 : Math.sin(t * 11) * 0.06;
+  camera.position.set(px, 2.0 + py + bob, pz);
+  camera.lookAt(px * 0.92, 1.75 + py * 0.35, pz - 12);
+  rig.position.copy(camera.position);
+  rig.quaternion.copy(camera.quaternion);
+  armL.position.y = armR.position.y = -0.55 + (S.air ? 0.12 : Math.sin(t * 11) * 0.03);
+  chute.visible = S.air; // 🪂 abre ao pular
+  if (S.air) chute.rotation.z = Math.sin(t * 3) * 0.08;
+
+  // HUD
+  $("h-ban").textContent = `🍌 ${S.got}`;
+  $("h-wal").textContent = `👛 ${wallet() + S.got}`;
+  $("h-life").textContent = "❤️".repeat(Math.max(0, S.lives)) + "🤍".repeat(Math.max(0, m.lives - S.lives)) + (S.shield ? " 🛡️" : "");
+  $("h-dist").textContent = `📏 ${S.dist}m`;
+  $("h-chute").style.display = S.air ? "inline" : "none";
+}
+
+function bankRun() {
+  if (S.got > 0) setWallet(wallet() + S.got);
+  const score = S.dist + S.got * 10;
+  const name = ($("player").value || "Jogador").trim().slice(0, 20) || "Jogador";
+  const prev = best();
+  const rec = !prev || score > prev.score;
+  if (rec) saveJSON("luis_best_v1", { name, score, dist: S.dist });
+  return { score, rec, name };
+}
+function gameOver() {
+  S.over = true;
+  const r = bankRun(), b = best(), dep = S.got;
+  $("end-emoji").textContent = "💀";
+  $("end-title").textContent = "Fim da corrida!";
+  $("end-text").textContent = `${r.name}: 📏 ${S.dist}m + 🍌 ${dep} = ${r.score} pts. Guardadas no cofre! 👛 ${wallet()} 🍌` + (r.rec ? " Novo recorde! 🏆" : "");
+  $("end-best").textContent = b ? `Recorde: ${b.name} — ${b.score} pts (${b.dist}m)` : "";
+  S.got = 0;
+  setTimeout(() => { show("screen-end"); showBest(); }, 300);
+}
+function quitToMenu(bank) {
+  if (S && bank && S.got > 0 && !S.over) setWallet(wallet() + S.got);
+  if (S) S.over = true;
+  show("screen-start"); showBest();
+}
+function togglePause() {
+  if (!S || S.over || $("screen-game").style.display === "none") return;
+  S.paused = !S.paused;
+  $("btn-pause").textContent = S.paused ? "▶ Continuar (P)" : "⏸ Pausar (P)";
+}
+
+// ---------- loop ----------
+let last = 0;
+function loop(t) {
+  requestAnimationFrame(loop);
+  if ($("screen-game").style.display === "none") return;
+  const dt = Math.min(0.05, (t - last) / 1000 || 0.016);
+  last = t;
+  if (!S.paused && !S.over) { update(dt); renderer.render(scene, camera); }
+}
+
+// ---------- eventos ----------
+window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(e.key.toLowerCase())) e.preventDefault();
   if (e.key.toLowerCase() === "p") togglePause();
 });
-window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
 function bindHold(id, key) {
-  const el = document.getElementById(id);
-  const on = e => { e.preventDefault(); keys[key] = true; };
-  const off = e => { e.preventDefault(); keys[key] = false; };
+  const el = $(id);
+  const on = (e) => { e.preventDefault(); keys[key] = true; };
+  const off = (e) => { e.preventDefault(); keys[key] = false; };
   el.addEventListener("pointerdown", on);
   el.addEventListener("pointerup", off);
   el.addEventListener("pointerleave", off);
 }
-bindHold("t-left", "arrowleft"); bindHold("t-right", "arrowright"); bindHold("t-jump", " ");
 
-// ===== Física =====
-function collide() {
-  player.onGround = false;
-  for (const p of plats) {
-    if (player.x < p.x + p.w && player.x + player.w > p.x && player.y < p.y + p.h && player.y + player.h > p.y) {
-      const overlapTop = (player.y + player.h) - p.y;
-      if (player.vy >= 0 && overlapTop < 30) { player.y = p.y - player.h; player.vy = 0; player.onGround = true; }
-      else if (player.vy < 0 && (p.y + p.h) - player.y < 30) { player.y = p.y + p.h; player.vy = 0; }
-      else if (player.x + player.w / 2 < p.x + p.w / 2) player.x = p.x - player.w;
-      else player.x = p.x + p.w;
-    }
-  }
+try {
+  initGL();
+  bindHold("t-left", "arrowleft"); bindHold("t-right", "arrowright"); bindHold("t-jump", " ");
+  $("btn-start").onclick = () => { resetRun(); show("screen-game"); showBest(); };
+  $("btn-again").onclick = () => { resetRun(); show("screen-game"); showBest(); };
+  $("btn-menu").onclick = () => quitToMenu(false);
+  $("btn-quit").onclick = () => quitToMenu(true);
+  $("btn-pause").onclick = togglePause;
+  $("btn-shop").onclick = () => { renderShop(); show("screen-shop"); };
+  $("btn-shop2").onclick = () => { renderShop(); show("screen-shop"); };
+  $("btn-shop-back").onclick = () => { show("screen-start"); showBest(); };
+  showBest();
+  requestAnimationFrame(loop);
+} catch (err) {
+  console.error(err);
+  $("err3d").style.display = "block";
+  // menu/loja continuam utilizáveis sem 3D
+  $("btn-shop").onclick = () => { renderShop(); show("screen-shop"); };
+  $("btn-shop2").onclick = () => { renderShop(); show("screen-shop"); };
+  $("btn-shop-back").onclick = () => { show("screen-start"); showBest(); };
+  showBest();
 }
-function rects(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
-
-function hurt(msg) {
-  const now = performance.now();
-  if (now < invulnUntil || over) return;
-  if (shieldUp) { shieldUp = false; invulnUntil = now + 1500; setMsg("🛡️ Escudo salvou o Luis!"); return; }
-  lives--;
-  invulnUntil = now + 1500;
-  setMsg(msg + ` (vidas: ${lives})`);
-  if (lives <= 0) return gameOver();
-  player.y = 300; player.vy = 0; // cai de paraquedas de volta
-}
-
-function update() {
-  if (paused || over) return;
-  const m = mods();
-  elapsed = (performance.now() - t0) / 1000;
-  genChunk();
-
-  const L = keys["arrowleft"] || keys["a"], R = keys["arrowright"] || keys["d"];
-  const J = keys[" "] || keys["arrowup"] || keys["w"];
-  player.vx = (R ? m.speed : 0) - (L ? m.speed : 0);
-  // corre sozinho para a direita no infinito (leve auto-run)
-  player.vx += m.speed * 0.35;
-  if (R) player.face = 1; if (L) player.face = -1;
-  player.x += player.vx;
-
-  // gravidade + paraquedas 🪂 (abre sempre que está no ar)
-  player.chute = !player.onGround;
-  if (!player.onGround && player.vy > 0) {
-    player.vy += m.fallGrav; // planar
-    if (player.vy > m.maxFall) player.vy = m.maxFall;
-  } else {
-    player.vy += 0.6;
-    if (player.vy > 14) player.vy = 14;
-  }
-  player.y += player.vy;
-  if (J && player.onGround) { player.vy = m.jump; player.onGround = false; player.chute = true; }
-  if (player.x < 0) player.x = 0;
-  maxX = Math.max(maxX, player.x);
-  collide();
-
-  if (player.y > H + 60) { // caiu no fosso: perde vida e volta
-    lives--;
-    setMsg(`🕳 Caiu no buraco! (vidas: ${lives})`);
-    if (lives <= 0) return gameOver();
-    player.x = Math.max(0, maxX - 150); player.y = 250; player.vy = 0; invulnUntil = performance.now() + 1500;
-  }
-
-  for (const e of enemies) {
-    e.x += e.speed * e.dir;
-    if (e.x > e.x2) e.dir = -1;
-    if (e.x < e.x1) e.dir = 1;
-    if (rects({ x: player.x + 4, y: player.y + 4, w: player.w - 8, h: player.h - 6 }, e)) hurt("🐍 A cobra pegou o Luis!");
-  }
-  for (const s of spikes) {
-    if (rects({ x: player.x + 6, y: player.y + 10, w: player.w - 12, h: player.h - 10 }, s)) hurt("🌵 Espinho!");
-  }
-  for (const b of bananas) {
-    if (!b.taken && Math.hypot(player.x + 17 - b.x, player.y + 20 - b.y) < m.magnet) { b.taken = true; got++; }
-  }
-  bananas = bananas.filter(b => !b.taken);
-
-  camX = Math.max(0, player.x - W / 3);
-
-  const dist = Math.floor(maxX / 50);
-  const startLives = mods().lives;
-  document.getElementById("h-ban").textContent = `🍌 ${got}`;
-  document.getElementById("h-wal").textContent = `👛 ${wallet() + got}`;
-  document.getElementById("h-life").textContent = "❤️".repeat(Math.max(0, lives)) + "🤍".repeat(Math.max(0, startLives - lives)) + (shieldUp ? " 🛡️" : "");
-  document.getElementById("h-dist").textContent = `📏 ${dist}m`;
-}
-
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.save();
-  ctx.translate(-camX, 0);
-  // fundo
-  ctx.font = "44px serif";
-  const startPalm = Math.floor(camX / 420) * 420;
-  for (let x = startPalm; x < camX + W + 420; x += 420) ctx.fillText("🌴", x, 470);
-  ctx.font = "28px serif";
-  ctx.fillText("🦜", camX + 150, 150); ctx.fillText("🌿", camX + 600, 200);
-
-  for (const p of plats) {
-    ctx.fillStyle = "#2f6b3a"; ctx.fillRect(p.x, p.y, p.w, p.h);
-    ctx.fillStyle = "#46a356"; ctx.fillRect(p.x, p.y, p.w, 10);
-  }
-  // fossos = água
-  ctx.fillStyle = "#3aa7e0";
-  // (visual simples: faixa d'água na base onde não há plataforma)
-  ctx.font = "34px serif";
-  for (const s of spikes) ctx.fillText("🌵", s.x, s.y + 26);
-  ctx.font = "28px serif";
-  const t = performance.now() / 400;
-  for (const b of bananas) ctx.fillText("🍌", b.x - 14, b.y + 10 + Math.sin(t + b.x) * 4);
-  ctx.font = "32px serif";
-  for (const e of enemies) ctx.fillText("🐍", e.x, e.y + 26);
-
-  // Luis + paraquedas 🪂 (aparece ao pular / cair)
-  const blink = performance.now() < invulnUntil && Math.floor(performance.now() / 150) % 2 === 0;
-  if (!blink) {
-    if (player.chute) { ctx.font = "44px serif"; ctx.fillText("🪂", player.x - 8, player.y - 12); }
-    ctx.font = "40px serif";
-    ctx.save();
-    ctx.translate(player.x + 17, player.y + 34);
-    ctx.scale(player.face, 1);
-    ctx.fillText("🐵", -20, 6);
-    ctx.restore();
-    ctx.font = "bold 13px sans-serif"; ctx.fillStyle = "#052e16";
-    ctx.fillText("Luis", player.x - 2, player.y - (player.chute ? 52 : 6));
-  }
-  ctx.restore();
-  if (paused && !over) {
-    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText("⏸ Pausado (P)", W / 2, H / 2); ctx.textAlign = "left";
-  }
-}
-
-function loop() { update(); draw(); if (!over) raf = requestAnimationFrame(loop); }
-
-// ===== Fim / banco =====
-function bankRun() {
-  if (got > 0) { setWallet(wallet() + got); }
-  const dist = Math.floor(maxX / 50);
-  const score = dist + got * 10;
-  const name = (document.getElementById("player").value || "Jogador").trim().slice(0, 20) || "Jogador";
-  const prev = best();
-  const rec = !prev || score > prev.score;
-  if (rec) saveJSON("luis_best_v1", { name, score, dist });
-  return { dist, score, rec, name };
-}
-function gameOver() {
-  over = true;
-  cancelAnimationFrame(raf);
-  const r = bankRun();
-  const b = best();
-  const deposited = got;
-  document.getElementById("end-emoji").textContent = "💀";
-  document.getElementById("end-title").textContent = "Fim da corrida!";
-  document.getElementById("end-text").textContent = `${r.name}: 📏 ${r.dist}m + 🍌 ${deposited} = ${r.score} pts. Bananas guardadas no cofre! 👛 ${wallet()} 🍌` + (r.rec ? " Novo recorde! 🏆" : "");
-  document.getElementById("end-best").textContent = b ? `Recorde: ${b.name} — ${b.score} pts (${b.dist}m)` : "";
-  got = 0;
-  setTimeout(() => { show("screen-end"); showBest(); }, 300);
-}
-function quitToMenu(bank) {
-  cancelAnimationFrame(raf); over = true;
-  if (bank && got > 0) { setWallet(wallet() + got); got = 0; }
-  show("screen-start"); showBest();
-}
-function togglePause() {
-  if (over || document.getElementById("screen-game").style.display === "none") return;
-  paused = !paused;
-  document.getElementById("btn-pause").textContent = paused ? "▶ Continuar (P)" : "⏸ Pausar (P)";
-}
-
-// ===== Loja UI =====
-function renderShop() {
-  const o = owned();
-  const w = wallet();
-  document.getElementById("wallet-shop").textContent = w;
-  const list = document.getElementById("shop-list");
-  list.innerHTML = "";
-  for (const it of SHOP) {
-    const has = !!o[it.id];
-    const row = document.createElement("div");
-    row.className = "shop-item";
-    const info = document.createElement("div");
-    info.className = "info";
-    const b = document.createElement("b"); b.textContent = `${it.icon} ${it.name} — ${it.cost} 🍌`;
-    const s = document.createElement("small"); s.textContent = it.desc + (has ? " ✅ comprado" : "");
-    info.appendChild(b); info.appendChild(s);
-    const btn = document.createElement("button");
-    btn.className = "btn"; btn.style.margin = "0";
-    btn.textContent = has ? "OK" : "Comprar";
-    btn.disabled = has || w < it.cost;
-    btn.onclick = () => {
-      const ow = owned();
-      const wal = wallet();
-      if (ow[it.id] || wal < it.cost) return;
-      setWallet(wal - it.cost);
-      ow[it.id] = true; saveJSON("luis_shop_v1", ow);
-      renderShop(); showBest();
-    };
-    row.appendChild(info); row.appendChild(btn);
-    list.appendChild(row);
-  }
-}
-
-document.getElementById("btn-start").onclick = () => { reset(); show("screen-game"); showBest(); cancelAnimationFrame(raf); loop(); };
-document.getElementById("btn-again").onclick = () => { reset(); show("screen-game"); showBest(); cancelAnimationFrame(raf); loop(); };
-document.getElementById("btn-menu").onclick = () => quitToMenu(false);
-document.getElementById("btn-quit").onclick = () => quitToMenu(true);
-document.getElementById("btn-pause").onclick = togglePause;
-document.getElementById("btn-shop").onclick = () => { renderShop(); show("screen-shop"); };
-document.getElementById("btn-shop2").onclick = () => { renderShop(); show("screen-shop"); };
-document.getElementById("btn-shop-back").onclick = () => {
-  // volta para onde estava
-  if (best() !== null || true) { show("screen-start"); showBest(); }
-};
-showBest();
 </script>
 </body>
 </html>
