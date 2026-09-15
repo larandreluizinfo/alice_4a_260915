@@ -1,18 +1,25 @@
-# alice_4a_260915 — Luis, o Macaco 🐵
+# alice_4a_260915 — Luis, o Macaco 🐵🪂
 
-Jogo de plataforma 2D em arquivo único `index.html` (Canvas, sem dependências).
+Jogo de plataforma **infinita** em arquivo único `index.html` (Canvas, sem dependências).
 
 Jogar online: https://larandreluizinfo.github.io/alice_4a_260915/
 
 ## Herói
-**Luis 🐵** — o macaco que coleta bananas e foge da selva.
+**Luis 🐵** — corre sem fim, abre o **paraquedas 🪂 ao pular** (queda lenta, segure o pulo para planar).
 
-## Regras
-- Colete no mínimo **8 de 12 bananas 🍌** para liberar a saída 🚩
-- 3 vidas ❤️ — perde ao cair no fosso, encostar em 🌵 ou na cobra 🐍
-- Score vitória: `bananas*100 + vidas*200 + max(0, 120-tempo)*5`
-- Recorde salvo em `localStorage` (`luis_best_v1`)
+## Regras (sem fim)
+- Corra para a direita, atravesse fossos, desvie de 🌵 e 🐍
+- 🍌 coletadas na corrida vão para o **cofre 👛** ao sair/morrer
+- Score: `distância(m) + bananas*10`
+- Dificuldade aumenta com a distância
+
+## 🛒 Loja (compra com bananas do cofre, salva no navegador)
+- 👟 Tênis veloz (25 🍌) — +20% velocidade
+- 🪂 Paraquedas PRO (30 🍌) — queda super lenta + pulo maior
+- 🧲 Imã de banana (40 🍌) — coleta de longe
+- ❤️ Coração extra (50 🍌) — começa com 4 vidas
+- 🛡️ Escudo (60 🍌) — 1 impacto grátis por corrida
 
 ## Controles
-- `←/→` ou `A/D` mover · `Espaço/↑/W` pular · `P` pausar
-- No celular: botões ◀ ▶ ⤒
+- `←/→` ou `A/D` mover (há leve auto-run) · `Espaço/↑/W` pular · `P` pausar
+- No celular: botões ◀ 🪂 ▶

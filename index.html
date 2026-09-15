@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Luis, o Macaco 🐵 — Jogo de Plataforma</title>
+  <title>Luis, o Macaco 🐵 — Selva Infinita + Loja</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #0b1f14; color: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 12px; }
@@ -11,11 +11,12 @@
     .card { background: #122b1c; border-radius: 16px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
     h1 { margin: 0 0 8px; font-size: 24px; }
     p { color: #a7c4b2; margin: 6px 0 12px; }
-    #hud { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 15px; font-weight: 700; margin: 10px 0; }
+    #hud { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 14px; font-weight: 700; margin: 10px 0; }
     #hud span { background: #1d4030; padding: 6px 12px; border-radius: 99px; }
     canvas { width: 100%; height: auto; border-radius: 12px; background: linear-gradient(#87ceeb, #bfe8a8 60%, #3a7d44); display: block; touch-action: none; }
     .btn { display: inline-block; padding: 12px 20px; margin: 6px 4px 0 0; border: 0; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; background: #22c55e; color: #052e16; }
     .btn.sec { background: #334155; color: #fff; }
+    .btn:disabled { opacity: .5; cursor: default; }
     .overlay { text-align: center; padding: 24px 12px; }
     .overlay .big { font-size: 56px; }
     input[type=text] { padding: 12px; border-radius: 10px; border: 1px solid #2d5a40; background: #0b1f14; color: #fff; font-size: 16px; width: 100%; max-width: 320px; }
@@ -23,111 +24,161 @@
     #touch button { flex: 1; font-size: 24px; padding: 14px; border-radius: 12px; border: 0; background: #1d4030; color: #fff; }
     @media (pointer: coarse) { #touch { display: flex; } }
     small { color: #7fa08d; }
+    .shop-item { display: flex; gap: 10px; align-items: center; justify-content: space-between; background: #1d4030; border-radius: 12px; padding: 10px 12px; margin: 8px 0; text-align: left; }
+    .shop-item .info { flex: 1; }
+    .shop-item b { display: block; }
+    .shop-item small { display: block; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
     <div id="screen-start" class="overlay">
-      <div class="big">🐵</div>
-      <h1>Luis, o Macaco — Fuga da Selva</h1>
-      <p>Colete pelo menos <b>8 de 12 bananas 🍌</b> e chegue na saída 🚩.<br>Desvie dos espinhos 🌵 e da cobra 🐍. Você tem 3 vidas ❤️.</p>
+      <div class="big">🐵🪂</div>
+      <h1>Luis, o Macaco — Selva Infinita</h1>
+      <p>Corra sem fim! Pegue 🍌, desvie de 🌵 e 🐍.<br>Quando o Luis pula, o <b>paraquedas 🪂 abre</b> e a queda fica lenta.<br>Gaste as bananas na <b>loja</b>!</p>
       <input id="player" type="text" placeholder="Seu nome (ex: Alice)" maxlength="20" />
       <br />
       <button id="btn-start" class="btn">Começar ▶</button>
-      <p><small>Controles: ←/→ ou A/D mover · Espaço/↑/W pular · P pausar · No celular use os botões ◀ ▶ ⤒</small></p>
+      <button id="btn-shop" class="btn sec">🛒 Loja (<span id="wallet-menu">0</span> 🍌)</button>
+      <p><small>Controles: ←/→ ou A/D mover · Espaço/↑/W pular (segure p/ planar) · P pausar</small></p>
       <p><small>🏆 Recorde: <span id="best-start">—</span></small></p>
+    </div>
+
+    <div id="screen-shop" class="overlay" style="display:none">
+      <h1>🛒 Loja do Luis</h1>
+      <p>Saldo: <b><span id="wallet-shop">0</span> 🍌</b> (bananas guardadas de todas as corridas)</p>
+      <div id="shop-list" style="text-align:left;max-width:520px;margin:0 auto"></div>
+      <button id="btn-shop-back" class="btn">⬅ Voltar</button>
+      <p><small>As compras ficam salvas no navegador.</small></p>
     </div>
 
     <div id="screen-game" style="display:none">
       <div id="hud">
-        <span id="h-ban">🍌 0/12 (mín 8)</span>
+        <span id="h-ban">🍌 0</span>
+        <span id="h-wal">👛 0</span>
         <span id="h-life">❤️❤️❤️</span>
-        <span id="h-time">⏱ 0s</span>
+        <span id="h-dist">📏 0m</span>
         <span id="h-best">🏆 —</span>
       </div>
       <canvas id="cv" width="960" height="540"></canvas>
       <div id="touch">
         <button id="t-left">◀</button>
-        <button id="t-jump">⤒</button>
+        <button id="t-jump">🪂</button>
         <button id="t-right">▶</button>
       </div>
       <div>
         <button id="btn-pause" class="btn sec">⏸ Pausar (P)</button>
-        <button id="btn-quit" class="btn sec">↩ Menu</button>
+        <button id="btn-quit" class="btn sec">↩ Menu (guarda 🍌)</button>
       </div>
-      <p><small id="msg">Saída bloqueada 🔒 — colete 8 bananas!</small></p>
+      <p><small id="msg">Segure o pulo para planar de paraquedas! 🪂</small></p>
     </div>
 
     <div id="screen-end" class="overlay" style="display:none">
-      <div class="big" id="end-emoji">🏁</div>
-      <h1 id="end-title">Você venceu!</h1>
+      <div class="big" id="end-emoji">💀</div>
+      <h1 id="end-title">Fim da corrida!</h1>
       <p id="end-text"></p>
       <p><small id="end-best"></small></p>
-      <button id="btn-again" class="btn">Jogar de novo ↻</button>
+      <button id="btn-again" class="btn">Correr de novo ↻</button>
+      <button id="btn-shop2" class="btn sec">🛒 Loja</button>
       <button id="btn-menu" class="btn sec">Menu</button>
     </div>
   </div>
 </div>
 
 <script>
-// ===== Config =====
-const W = 960, H = 540, GRAV = 0.6, SPEED = 4.2, JUMP = -13;
-const MIN_BANANAS = 8, START_LIVES = 3;
+// ===== Loja / persistência =====
+const SHOP = [
+  { id: "shoes",  icon: "👟", name: "Tênis veloz",      desc: "+20% velocidade",        cost: 25 },
+  { id: "chute",  icon: "🪂", name: "Paraquedas PRO",   desc: "queda super lenta + pulo maior", cost: 30 },
+  { id: "magnet", icon: "🧲", name: "Imã de banana",    desc: "coleta de longe",        cost: 40 },
+  { id: "life",   icon: "❤️", name: "Coração extra",    desc: "começa com 4 vidas",     cost: 50 },
+  { id: "shield", icon: "🛡️", name: "Escudo",           desc: "1 impacto grátis por corrida",   cost: 60 },
+];
+function loadJSON(k, fb) { try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; } catch { return fb; } }
+function saveJSON(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function wallet() { return loadJSON("luis_wallet_v1", 0); }
+function setWallet(v) { saveJSON("luis_wallet_v1", v); }
+function owned() { return loadJSON("luis_shop_v1", {}); }
+function best() { return loadJSON("luis_best_v1", null); }
 
-// Fase ~2400px de largura. y cresce p/ baixo. Chão base y=480.
-const PLATS = [
-  { x: 0, y: 480, w: 420, h: 60 },      // início (fossa 420-520)
-  { x: 520, y: 480, w: 380, h: 60 },    // meio 1 (fossa 900-980)
-  { x: 980, y: 480, w: 420, h: 60 },    // meio 2 (fossa 1400-1500)
-  { x: 1500, y: 480, w: 420, h: 60 },   // meio 3
-  { x: 1920, y: 480, w: 480, h: 60 },   // final (saída aqui)
-  { x: 180, y: 380, w: 140, h: 20 },
-  { x: 560, y: 360, w: 140, h: 20 },
-  { x: 820, y: 370, w: 120, h: 20 },
-  { x: 1080, y: 350, w: 150, h: 20 },
-  { x: 1330, y: 370, w: 120, h: 20 },
-  { x: 1620, y: 350, w: 150, h: 20 },
-  { x: 2050, y: 360, w: 150, h: 20 },
-];
-const BANANAS0 = [
-  { x: 200, y: 340 }, { x: 280, y: 340 }, { x: 600, y: 320 }, { x: 650, y: 320 },
-  { x: 860, y: 330 }, { x: 1130, y: 310 }, { x: 1200, y: 310 }, { x: 1360, y: 330 },
-  { x: 1660, y: 310 }, { x: 1730, y: 310 }, { x: 2090, y: 320 }, { x: 2150, y: 320 },
-];
-const SPIKES = [
-  { x: 700, y: 458, w: 44, h: 22 },
-  { x: 1180, y: 458, w: 44, h: 22 },
-  { x: 1700, y: 458, w: 44, h: 22 },
-  { x: 1980, y: 458, w: 44, h: 22 },
-];
-const EXIT = { x: 2290, y: 400, w: 60, h: 80 };
-const ENEMY0 = { x1: 1000, x2: 1350, y: 452, w: 36, h: 28, speed: 1.6 };
-
-// ===== Estado =====
+// ===== Jogo infinito =====
+const W = 960, H = 540;
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
-let player, bananas, enemy, camX, lives, got, t0, elapsed, paused, over, invulnUntil, keys, raf;
+let player, plats, bananas, spikes, enemies, camX, lives, got, maxX, t0, elapsed, paused, over, invulnUntil, shieldUp, keys, raf, genX, msgTimer;
 
-function best() { try { return JSON.parse(localStorage.getItem("luis_best_v1") || "null"); } catch { return null; } }
-function showBest() {
-  const b = best();
-  const t = b ? `${b.name} — ${b.score} pts` : "—";
-  document.getElementById("best-start").textContent = t;
-  document.getElementById("h-best").textContent = "🏆 " + t;
+function mods() {
+  const o = owned();
+  return {
+    speed: 4.2 * (o.shoes ? 1.2 : 1),
+    jump: -13 - (o.chute ? 2 : 0),
+    magnet: o.magnet ? 70 : 34,
+    maxFall: o.chute ? 3.0 : 4.5,
+    fallGrav: o.chute ? 0.18 : 0.28,
+    lives: o.life ? 4 : 3,
+    shield: !!o.shield,
+  };
 }
 
 function reset() {
-  player = { x: 60, y: 380, vx: 0, vy: 0, w: 34, h: 40, onGround: false, face: 1 };
-  bananas = BANANAS0.map(b => ({ ...b, taken: false }));
-  enemy = { ...ENEMY0, x: ENEMY0.x1, dir: 1 };
-  camX = 0; lives = START_LIVES; got = 0; elapsed = 0; t0 = performance.now();
-  paused = false; over = false; invulnUntil = 0; keys = {};
+  const m = mods();
+  player = { x: 60, y: 380, vx: 0, vy: 0, w: 34, h: 40, onGround: false, face: 1, chute: false };
+  plats = [{ x: 0, y: 480, w: 600, h: 60 }, { x: 620, y: 380, w: 140, h: 20 }];
+  bananas = [{ x: 200, y: 440, taken: false }, { x: 250, y: 440, taken: false }, { x: 660, y: 340, taken: false }];
+  spikes = []; enemies = [];
+  genX = 900;
+  camX = 0; lives = m.lives; got = 0; maxX = 60;
+  t0 = performance.now(); elapsed = 0;
+  paused = false; over = false; invulnUntil = 0; shieldUp = m.shield;
+  keys = {};
+  setMsg("Segure o pulo para planar de paraquedas! 🪂");
+}
+
+function difficulty() { return Math.min(1, maxX / 6000); } // 0→1
+
+function genChunk() {
+  const d = difficulty();
+  while (genX < camX + W + 700) {
+    const gap = Math.random() < 0.25 + d * 0.15;
+    if (gap) genX += 90 + Math.random() * 60 + d * 40; // fosso
+    const w = 380 + Math.random() * 220;
+    plats.push({ x: genX, y: 480, w, h: 60 });
+    // plataforma flutuante
+    if (Math.random() < 0.7) plats.push({ x: genX + 60 + Math.random() * (w - 160), y: 340 + Math.random() * 60, w: 120, h: 20 });
+    // bananas
+    const n = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) bananas.push({ x: genX + 60 + Math.random() * (w - 80), y: 380 + Math.random() * 60, taken: false });
+    // espinhos
+    if (maxX > 700 && Math.random() < 0.35 + d * 0.3) spikes.push({ x: genX + 80 + Math.random() * (w - 160), y: 458, w: 44, h: 22 });
+    // cobra
+    if (maxX > 900 && Math.random() < 0.3 + d * 0.3) {
+      const ex1 = genX + 40, ex2 = genX + w - 60;
+      enemies.push({ x1: ex1, x2: Math.max(ex1 + 60, ex2), y: 452, w: 36, h: 28, x: ex1, dir: 1, speed: 1.6 + d * 1.4 });
+    }
+    genX += w + 40;
+  }
+  // limpa o que ficou para trás
+  const cut = camX - 300;
+  plats = plats.filter(p => p.x + p.w > cut);
+  bananas = bananas.filter(b => b.x > cut - 100 && !b.taken);
+  spikes = spikes.filter(s => s.x + s.w > cut);
+  enemies = enemies.filter(e => e.x2 > cut);
 }
 
 function show(id) {
-  ["screen-start", "screen-game", "screen-end"].forEach(s => document.getElementById(s).style.display = "none");
+  ["screen-start", "screen-shop", "screen-game", "screen-end"].forEach(s => document.getElementById(s).style.display = "none");
   document.getElementById(id).style.display = "block";
+}
+function setMsg(t) { document.getElementById("msg").textContent = t; }
+
+function showBest() {
+  const b = best();
+  const t = b ? `${b.name} — ${b.score} pts (${b.dist}m)` : "—";
+  document.getElementById("best-start").textContent = t;
+  document.getElementById("h-best").textContent = "🏆 " + t;
+  document.getElementById("wallet-menu").textContent = wallet();
+  document.getElementById("wallet-shop").textContent = wallet();
 }
 
 // ===== Input =====
@@ -147,138 +198,122 @@ function bindHold(id, key) {
 }
 bindHold("t-left", "arrowleft"); bindHold("t-right", "arrowright"); bindHold("t-jump", " ");
 
-// ===== Colisão =====
+// ===== Física =====
 function collide() {
   player.onGround = false;
-  for (const p of PLATS) {
+  for (const p of plats) {
     if (player.x < p.x + p.w && player.x + player.w > p.x && player.y < p.y + p.h && player.y + player.h > p.y) {
-      // resolve pelo menor eixo; prioriza pouso por cima quando caindo
       const overlapTop = (player.y + player.h) - p.y;
-      if (player.vy >= 0 && overlapTop < 30) {
-        player.y = p.y - player.h; player.vy = 0; player.onGround = true;
-      } else if (player.vy < 0 && (p.y + p.h) - player.y < 30) {
-        player.y = p.y + p.h; player.vy = 0;
-      } else if (player.x + player.w / 2 < p.x + p.w / 2) {
-        player.x = p.x - player.w;
-      } else {
-        player.x = p.x + p.w;
-      }
+      if (player.vy >= 0 && overlapTop < 30) { player.y = p.y - player.h; player.vy = 0; player.onGround = true; }
+      else if (player.vy < 0 && (p.y + p.h) - player.y < 30) { player.y = p.y + p.h; player.vy = 0; }
+      else if (player.x + player.w / 2 < p.x + p.w / 2) player.x = p.x - player.w;
+      else player.x = p.x + p.w;
     }
   }
 }
 function rects(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 
-// ===== Update =====
 function hurt(msg) {
   const now = performance.now();
   if (now < invulnUntil || over) return;
+  if (shieldUp) { shieldUp = false; invulnUntil = now + 1500; setMsg("🛡️ Escudo salvou o Luis!"); return; }
   lives--;
   invulnUntil = now + 1500;
-  document.getElementById("msg").textContent = msg + ` (vidas: ${lives})`;
-  if (lives <= 0) return gameOver(false);
-  player.x = 60; player.y = 380; player.vx = 0; player.vy = 0; camX = 0;
+  setMsg(msg + ` (vidas: ${lives})`);
+  if (lives <= 0) return gameOver();
+  player.y = 300; player.vy = 0; // cai de paraquedas de volta
 }
 
-function update(dt) {
+function update() {
   if (paused || over) return;
+  const m = mods();
   elapsed = (performance.now() - t0) / 1000;
+  genChunk();
 
   const L = keys["arrowleft"] || keys["a"], R = keys["arrowright"] || keys["d"];
   const J = keys[" "] || keys["arrowup"] || keys["w"];
-  player.vx = (R ? SPEED : 0) - (L ? SPEED : 0);
+  player.vx = (R ? m.speed : 0) - (L ? m.speed : 0);
+  // corre sozinho para a direita no infinito (leve auto-run)
+  player.vx += m.speed * 0.35;
   if (R) player.face = 1; if (L) player.face = -1;
   player.x += player.vx;
-  player.vy += GRAV;
-  if (player.vy > 14) player.vy = 14;
+
+  // gravidade + paraquedas 🪂 (abre sempre que está no ar)
+  player.chute = !player.onGround;
+  if (!player.onGround && player.vy > 0) {
+    player.vy += m.fallGrav; // planar
+    if (player.vy > m.maxFall) player.vy = m.maxFall;
+  } else {
+    player.vy += 0.6;
+    if (player.vy > 14) player.vy = 14;
+  }
   player.y += player.vy;
-  if (J && player.onGround) { player.vy = JUMP; player.onGround = false; }
-  player.x = Math.max(0, Math.min(player.x, 2400 - player.w));
+  if (J && player.onGround) { player.vy = m.jump; player.onGround = false; player.chute = true; }
+  if (player.x < 0) player.x = 0;
+  maxX = Math.max(maxX, player.x);
   collide();
 
-  // caiu no fosso
-  if (player.y > H + 40) return hurt("🕳 Luis caiu no buraco!");
-
-  // inimigo patrulha
-  enemy.x += enemy.speed * enemy.dir;
-  if (enemy.x > enemy.x2) enemy.dir = -1;
-  if (enemy.x < enemy.x1) enemy.dir = 1;
-  if (rects({ ...player, w: player.w - 8, h: player.h - 6 }, enemy)) return hurt("🐍 A cobra pegou o Luis!");
-
-  // espinhos
-  for (const s of SPIKES) {
-    if (rects({ x: player.x + 6, y: player.y + 10, w: player.w - 12, h: player.h - 10 }, s)) return hurt("🌵 Espinho!");
+  if (player.y > H + 60) { // caiu no fosso: perde vida e volta
+    lives--;
+    setMsg(`🕳 Caiu no buraco! (vidas: ${lives})`);
+    if (lives <= 0) return gameOver();
+    player.x = Math.max(0, maxX - 150); player.y = 250; player.vy = 0; invulnUntil = performance.now() + 1500;
   }
 
-  // bananas
+  for (const e of enemies) {
+    e.x += e.speed * e.dir;
+    if (e.x > e.x2) e.dir = -1;
+    if (e.x < e.x1) e.dir = 1;
+    if (rects({ x: player.x + 4, y: player.y + 4, w: player.w - 8, h: player.h - 6 }, e)) hurt("🐍 A cobra pegou o Luis!");
+  }
+  for (const s of spikes) {
+    if (rects({ x: player.x + 6, y: player.y + 10, w: player.w - 12, h: player.h - 10 }, s)) hurt("🌵 Espinho!");
+  }
   for (const b of bananas) {
-    if (!b.taken && Math.hypot(player.x + 17 - b.x, player.y + 20 - b.y) < 34) {
-      b.taken = true; got++;
-      document.getElementById("msg").textContent = got >= MIN_BANANAS ? "Saída liberada! Vá para 🚩!" : `🍌 ${got}/${bananas.length} (mín ${MIN_BANANAS})`;
-    }
+    if (!b.taken && Math.hypot(player.x + 17 - b.x, player.y + 20 - b.y) < m.magnet) { b.taken = true; got++; }
   }
+  bananas = bananas.filter(b => !b.taken);
 
-  // saída
-  if (rects(player, EXIT)) {
-    if (got >= MIN_BANANAS) return gameOver(true);
-    document.getElementById("msg").textContent = `🔒 Faltam ${MIN_BANANAS - got} bananas para abrir a saída!`;
-  }
+  camX = Math.max(0, player.x - W / 3);
 
-  // câmera
-  camX = Math.max(0, Math.min(player.x - W / 2 + 100, 2400 - W));
-
-  // HUD
-  document.getElementById("h-ban").textContent = `🍌 ${got}/${bananas.length} (mín ${MIN_BANANAS})`;
-  document.getElementById("h-life").textContent = "❤️".repeat(Math.max(0, lives)) + "🤍".repeat(Math.max(0, START_LIVES - lives));
-  document.getElementById("h-time").textContent = `⏱ ${Math.floor(elapsed)}s`;
+  const dist = Math.floor(maxX / 50);
+  const startLives = mods().lives;
+  document.getElementById("h-ban").textContent = `🍌 ${got}`;
+  document.getElementById("h-wal").textContent = `👛 ${wallet() + got}`;
+  document.getElementById("h-life").textContent = "❤️".repeat(Math.max(0, lives)) + "🤍".repeat(Math.max(0, startLives - lives)) + (shieldUp ? " 🛡️" : "");
+  document.getElementById("h-dist").textContent = `📏 ${dist}m`;
 }
 
-// ===== Draw =====
 function draw() {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   ctx.translate(-camX, 0);
-
-  // decoração selva
+  // fundo
   ctx.font = "44px serif";
-  for (let x = 100; x < 2400; x += 420) ctx.fillText("🌴", x, 470);
+  const startPalm = Math.floor(camX / 420) * 420;
+  for (let x = startPalm; x < camX + W + 420; x += 420) ctx.fillText("🌴", x, 470);
   ctx.font = "28px serif";
-  ctx.fillText("🌿", 300, 200); ctx.fillText("🌿", 1200, 180); ctx.fillText("🦜", 900, 150); ctx.fillText("🦜", 1900, 160);
+  ctx.fillText("🦜", camX + 150, 150); ctx.fillText("🌿", camX + 600, 200);
 
-  // plataformas
-  for (const p of PLATS) {
-    ctx.fillStyle = "#2f6b3a";
-    ctx.fillRect(p.x, p.y, p.w, p.h);
-    ctx.fillStyle = "#46a356";
-    ctx.fillRect(p.x, p.y, p.w, 10);
+  for (const p of plats) {
+    ctx.fillStyle = "#2f6b3a"; ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = "#46a356"; ctx.fillRect(p.x, p.y, p.w, 10);
   }
-  // fossos: marca água
+  // fossos = água
   ctx.fillStyle = "#3aa7e0";
-  [[420, 100], [900, 80], [1400, 100]].forEach(([x, w]) => ctx.fillRect(x, 500, w, 40));
-
-  // saída
-  const open = got >= MIN_BANANAS;
-  ctx.font = "56px serif";
-  ctx.fillText(open ? "🚩" : "🔒", EXIT.x, EXIT.y + 60);
-  ctx.fillStyle = open ? "#22c55e" : "#64748b";
-  ctx.fillRect(EXIT.x, EXIT.y + 70, EXIT.w, 6);
-
-  // espinhos
+  // (visual simples: faixa d'água na base onde não há plataforma)
   ctx.font = "34px serif";
-  for (const s of SPIKES) ctx.fillText("🌵", s.x, s.y + 26);
-
-  // bananas
+  for (const s of spikes) ctx.fillText("🌵", s.x, s.y + 26);
   ctx.font = "28px serif";
   const t = performance.now() / 400;
-  for (const b of bananas) {
-    if (!b.taken) ctx.fillText("🍌", b.x - 14, b.y + 10 + Math.sin(t + b.x) * 4);
-  }
-
-  // inimigo
+  for (const b of bananas) ctx.fillText("🍌", b.x - 14, b.y + 10 + Math.sin(t + b.x) * 4);
   ctx.font = "32px serif";
-  ctx.fillText("🐍", enemy.x, enemy.y + 26);
+  for (const e of enemies) ctx.fillText("🐍", e.x, e.y + 26);
 
-  // Luis (pisca na invencibilidade)
-  if (performance.now() >= invulnUntil || Math.floor(performance.now() / 150) % 2 === 0) {
+  // Luis + paraquedas 🪂 (aparece ao pular / cair)
+  const blink = performance.now() < invulnUntil && Math.floor(performance.now() / 150) % 2 === 0;
+  if (!blink) {
+    if (player.chute) { ctx.font = "44px serif"; ctx.fillText("🪂", player.x - 8, player.y - 12); }
     ctx.font = "40px serif";
     ctx.save();
     ctx.translate(player.x + 17, player.y + 34);
@@ -286,11 +321,9 @@ function draw() {
     ctx.fillText("🐵", -20, 6);
     ctx.restore();
     ctx.font = "bold 13px sans-serif"; ctx.fillStyle = "#052e16";
-    ctx.fillText("Luis", player.x - 2, player.y - 6);
+    ctx.fillText("Luis", player.x - 2, player.y - (player.chute ? 52 : 6));
   }
-
   ctx.restore();
-
   if (paused && !over) {
     ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "#fff"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
@@ -298,43 +331,87 @@ function draw() {
   }
 }
 
-function loop() {
-  update();
-  draw();
-  if (!over) raf = requestAnimationFrame(loop);
-}
+function loop() { update(); draw(); if (!over) raf = requestAnimationFrame(loop); }
 
-// ===== Fim =====
-function gameOver(win) {
+// ===== Fim / banco =====
+function bankRun() {
+  if (got > 0) { setWallet(wallet() + got); }
+  const dist = Math.floor(maxX / 50);
+  const score = dist + got * 10;
+  const name = (document.getElementById("player").value || "Jogador").trim().slice(0, 20) || "Jogador";
+  const prev = best();
+  const rec = !prev || score > prev.score;
+  if (rec) saveJSON("luis_best_v1", { name, score, dist });
+  return { dist, score, rec, name };
+}
+function gameOver() {
   over = true;
   cancelAnimationFrame(raf);
-  const name = (document.getElementById("player").value || "Jogador").trim().slice(0, 20) || "Jogador";
-  const score = win ? got * 100 + lives * 200 + Math.max(0, 120 - Math.floor(elapsed)) * 5 : got * 50;
-  let rec = false;
-  const prev = best();
-  if (!prev || score > prev.score) {
-    localStorage.setItem("luis_best_v1", JSON.stringify({ name, score }));
-    rec = true;
-  }
+  const r = bankRun();
   const b = best();
-  document.getElementById("end-emoji").textContent = win ? "🏆" : "💀";
-  document.getElementById("end-title").textContent = win ? "Luis escapou! 🎉" : "Game over 😢";
-  document.getElementById("end-text").textContent = `${name}: ${got} bananas, ${Math.floor(elapsed)}s, ${score} pts.` + (win ? (rec ? " Novo recorde!" : "") : " Tente de novo!");
-  document.getElementById("end-best").textContent = b ? `Recorde: ${b.name} — ${b.score} pts` : "";
-  setTimeout(() => show("screen-end"), 300);
+  const deposited = got;
+  document.getElementById("end-emoji").textContent = "💀";
+  document.getElementById("end-title").textContent = "Fim da corrida!";
+  document.getElementById("end-text").textContent = `${r.name}: 📏 ${r.dist}m + 🍌 ${deposited} = ${r.score} pts. Bananas guardadas no cofre! 👛 ${wallet()} 🍌` + (r.rec ? " Novo recorde! 🏆" : "");
+  document.getElementById("end-best").textContent = b ? `Recorde: ${b.name} — ${b.score} pts (${b.dist}m)` : "";
+  got = 0;
+  setTimeout(() => { show("screen-end"); showBest(); }, 300);
 }
-
+function quitToMenu(bank) {
+  cancelAnimationFrame(raf); over = true;
+  if (bank && got > 0) { setWallet(wallet() + got); got = 0; }
+  show("screen-start"); showBest();
+}
 function togglePause() {
   if (over || document.getElementById("screen-game").style.display === "none") return;
   paused = !paused;
   document.getElementById("btn-pause").textContent = paused ? "▶ Continuar (P)" : "⏸ Pausar (P)";
 }
 
+// ===== Loja UI =====
+function renderShop() {
+  const o = owned();
+  const w = wallet();
+  document.getElementById("wallet-shop").textContent = w;
+  const list = document.getElementById("shop-list");
+  list.innerHTML = "";
+  for (const it of SHOP) {
+    const has = !!o[it.id];
+    const row = document.createElement("div");
+    row.className = "shop-item";
+    const info = document.createElement("div");
+    info.className = "info";
+    const b = document.createElement("b"); b.textContent = `${it.icon} ${it.name} — ${it.cost} 🍌`;
+    const s = document.createElement("small"); s.textContent = it.desc + (has ? " ✅ comprado" : "");
+    info.appendChild(b); info.appendChild(s);
+    const btn = document.createElement("button");
+    btn.className = "btn"; btn.style.margin = "0";
+    btn.textContent = has ? "OK" : "Comprar";
+    btn.disabled = has || w < it.cost;
+    btn.onclick = () => {
+      const ow = owned();
+      const wal = wallet();
+      if (ow[it.id] || wal < it.cost) return;
+      setWallet(wal - it.cost);
+      ow[it.id] = true; saveJSON("luis_shop_v1", ow);
+      renderShop(); showBest();
+    };
+    row.appendChild(info); row.appendChild(btn);
+    list.appendChild(row);
+  }
+}
+
 document.getElementById("btn-start").onclick = () => { reset(); show("screen-game"); showBest(); cancelAnimationFrame(raf); loop(); };
 document.getElementById("btn-again").onclick = () => { reset(); show("screen-game"); showBest(); cancelAnimationFrame(raf); loop(); };
-document.getElementById("btn-menu").onclick = () => { cancelAnimationFrame(raf); over = true; show("screen-start"); showBest(); };
-document.getElementById("btn-quit").onclick = () => { cancelAnimationFrame(raf); over = true; show("screen-start"); showBest(); };
+document.getElementById("btn-menu").onclick = () => quitToMenu(false);
+document.getElementById("btn-quit").onclick = () => quitToMenu(true);
 document.getElementById("btn-pause").onclick = togglePause;
+document.getElementById("btn-shop").onclick = () => { renderShop(); show("screen-shop"); };
+document.getElementById("btn-shop2").onclick = () => { renderShop(); show("screen-shop"); };
+document.getElementById("btn-shop-back").onclick = () => {
+  // volta para onde estava
+  if (best() !== null || true) { show("screen-start"); showBest(); }
+};
 showBest();
 </script>
 </body>
