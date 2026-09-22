@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quiz Animais — 1000 Fases 🐾</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#0b1f14;color:#f1f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12px;transition:background 0.6s}
+.wrap{width:100%;max-width:720px}
+.card{background:#122b1cb3;border-radius:16px;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.5);backdrop-filter:blur(2px)}
+h1{margin:0 0 8px;font-size:24px}
+p{color:#a7c4b2;margin:6px 0 12px}
+#hud{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;margin:10px 0}
+#hud span{background:#1d4030;padding:6px 12px;border-radius:99px}
+.bar{height:10px;background:#1d4030;border-radius:99px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:#22c55e;width:0%}
+.q{font-size:20px;font-weight:800;margin:14px 0;min-height:56px}
+.opts{display:grid;gap:8px}
+.opt{padding:12px;border-radius:12px;border:2px solid #2d5a40;background:#0b1f14;color:#fff;font-size:16px;cursor:pointer;text-align:left}
+.opt:hover{border-color:#22c55e}
+.opt:disabled{opacity:.7;cursor:default}
+.opt.ok{border-color:#22c55e;background:#14532d}
+.opt.err{border-color:#ef4444;background:#450a0a}
+.btn{display:inline-block;padding:12px 20px;margin:6px 4px 0 0;border:0;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;background:#22c55e;color:#052e16}
+.btn.sec{background:#334155;color:#fff}
+.btn:disabled{opacity:.5}
+.overlay{text-align:center;padding:12px}
+.big{font-size:56px}
+input[type=text]{padding:12px;border-radius:10px;border:1px solid #2d5a40;background:#0b1f14;color:#fff;font-size:16px;width:100%;max-width:320px}
+small{color:#7fa08d}
+#timer{font-variant-numeric:tabular-nums}
+.exp{background:#1d4030;border-radius:12px;padding:10px;margin-top:10px;font-size:14px;display:none}
+.grid2{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#hab{display:flex;gap:10px;align-items:center;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:800;font-size:15px;background:#1d4030;border:2px solid #2d5a40}
+#hab .big2{font-size:34px}
+#hab small{display:block;font-weight:400}
+.sndrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sndrow .btn{padding:8px 12px;font-size:14px}
+.shop-item{display:flex;gap:10px;align-items:center;justify-content:space-between;background:#1d4030;border-radius:12px;padding:10px 12px;margin:8px 0;text-align:left}
+.shop-item .info{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+<div id="s-start" class="overlay">
+<div class="big">🐾❓</div>
+<h1>Quiz Animais — 1000 Fases</h1>
+<p><b>Fases 1–50:</b> animais do dia a dia 🐶🐱🐄<br><b>Fases 51–500:</b> animais selvagens e raros 🦁🐙🦎<br><b>Fases 501–1000:</b> nível científico 🔬 (nome científico, classe, ordem...)</p>
+<p><small>Dificuldade aumenta: menos tempo por fase. ✅ Acerto = <b>+10 pts</b> · ❌ Erro/tempo = <b>−5 pts</b> (nunca abaixo de 0). 3 vidas ❤️❤️❤️ · checkpoint a cada 25 fases · gaste os pontos na 🛒 loja.</small></p>
+<input id="player" type="text" placeholder="Seu nome" maxlength="20" /><br>
+<button id="b-new" class="btn">Começar do zero ▶</button>
+<button id="b-cont" class="btn sec">Continuar ↻</button>
+<button id="b-shop" class="btn sec">🛒 Loja (<span id="w-menu">0</span> ⭐)</button><br>
+<p><small id="save-info">—</small></p>
+<p><small>🏆 <span id="best">—</span> · <a href="index.html" style="color:#22c55e">🐵 Voltar ao Luis</a></small></p>
+<p><small>🔊 Com som: cada fase mostra o habitat do animal e toca sons (animal + ambiente). <button id="b-snd" class="btn sec" style="padding:6px 10px;font-size:13px">🔊 Som: ON</button></small></p>
+</div>
+<div id="s-game" style="display:none">
+<div id="hab"><span class="big2" id="hab-emoji">🏡</span><span><span id="hab-name">Sítio</span><small id="hab-sub">habitat da fase</small></span></div>
+<div id="hud">
+<span id="h-fase">Fase 1/1000</span>
+<span id="h-cat">🐶 Dia a dia</span>
+<span id="h-pts">⭐ 0</span>
+<span id="h-life">❤️❤️❤️</span>
+<span id="h-time">⏱ 60s</span>
+<span id="h-hint">💡 3</span>
+</div>
+<div class="bar"><i id="prog"></i></div>
+<div class="q" id="q"></div>
+<div class="sndrow">
+<button id="b-animal" class="btn sec">🔊 Ouvir animal</button>
+<button id="b-tts" class="btn sec">🗣 Ler pergunta</button>
+<button id="b-amb" class="btn sec">🌿 Ambiente: ON</button>
+</div>
+<div class="opts" id="opts"></div>
+<div class="exp" id="exp"></div>
+<div>
+<button id="b-hint" class="btn sec">💡 Eliminar 2 (50/50)</button>
+<button id="b-skip" class="btn sec">⏭ Pular (3)</button>
+<button id="b-shop2" class="btn sec">🛒 Loja</button>
+<button id="b-quit" class="btn sec">↩ Salvar e sair</button>
+</div>
+<p><small id="msg"></small></p>
+</div>
+<div id="s-shop" class="overlay" style="display:none">
+<h1>🛒 Loja do Quiz</h1>
+<p>Saldo: <b><span id="w-shop">0</span> ⭐</b> (ganhe +10 por acerto)</p>
+<div id="shop-list" style="text-align:left;max-width:520px;margin:0 auto"></div>
+<button id="b-shop-back" class="btn">⬅ Voltar</button>
+</div>
+<div id="s-end" class="overlay" style="display:none">
+<div class="big" id="e-emoji">🏆</div>
+<h1 id="e-title">Fim!</h1>
+<p id="e-text"></p>
+<button id="b-again" class="btn">Jogar de novo ↻</button>
+<button id="b-menu" class="btn sec">Menu</button>
+</div>
+</div></div>
+<script>
+// ===== RNG determinístico (mesma fase = mesma pergunta) =====
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// ===== BANCO TIER 1: dia a dia (1-50) =====
+const T1=[
+{n:"Cachorro",som:"latir",come:"ração e carne",faz:"guardar a casa",filho:"filhote/cachorrinho",hab:"quintal de casa",emoji:"🐶"},
+{n:"Gato",som:"miar",come:"ração e peixe",faz:"caçar ratos",filho:"gatinho",hab:"quintal de casa",emoji:"🐱"},
+{n:"Vaca",som:"mugir",come:"capim",faz:"dar leite",filho:"bezerro",hab:"pasto da fazenda",emoji:"🐄"},
+{n:"Cavalo",som:"relinchar",come:"capim e aveia",faz:"puxar carroça e montaria",filho:"potro",hab:"pasto da fazenda",emoji:"🐴"},
+{n:"Galinha",som:"cacarejar",come:"milho",faz:"botar ovos",filho:"pintinho",hab:"galinheiro do sítio",emoji:"🐔"},
+{n:"Porco",som:"grunhir",come:"lavagem e milho",faz:"dar carne e banha",filho:"leitão",hab:"chiqueiro do sítio",emoji:"🐷"},
+{n:"Pato",som:"grasnar",come:"milho e peixinhos",faz:"nadar e botar ovos",filho:"patinho",hab:"lago do sítio",emoji:"🦆"},
+{n:"Coelho",som:"ronronar/bater o pé",come:"cenoura e folhas",faz:"cavar tocas",filho:"láparo",hab:"toca no quintal",emoji:"🐰"},
+{n:"Ovelha",som:"balir",come:"capim",faz:"dar lã",filho:"cordeiro",hab:"pasto da fazenda",emoji:"🐑"},
+{n:"Cabra",som:"balir",come:"capim e folhas",faz:"dar leite",filho:"cabrito",hab:"pasto da fazenda",emoji:"🐐"},
+{n:"Burro",som:"zurrar",come:"capim",faz:"carregar carga",filho:"burrinho",hab:"estrada do sítio",emoji:"🫏"},
+{n:"Peru",som:"grugrulejar",come:"milho",faz:"festa de fim de ano (ceia)",filho:"peruzinho",hab:"galinheiro do sítio",emoji:"🦃"},
+{n:"Pombo",som:"arrulhar",come:"sementes",faz:"levar mensagens",filho:"pombinho",hab:"praça da cidade",emoji:"🕊️"},
+{n:"Papagaio",som:"falar/grasnar",come:"frutas e sementes",faz:"imitar a fala",filho:"papagainho",hab:"varanda de casa",emoji:"🦜"},
+{n:"Peixe (tilápia)",som:"não emite som",come:"ração",faz:"viver na água",filho:"alevino",hab:"lago do sítio",emoji:"🐟"},
+{n:"Abelha",som:"zumbir",come:"néctar",faz:"produzir mel",filho:"larva",hab:"jardim com flores",emoji:"🐝"},
+{n:"Boi",som:"mugir",come:"capim",faz:"puxar arado",filho:"bezerro",hab:"pasto da fazenda",emoji:"🐂"},
+{n:"Ganso",som:"grasnar alto",come:"grama",faz:"vigiar o quintal",filho:"gansinho",hab:"lago do sítio",emoji:"🪿"},
+{n:"Hamster",som:"chiar",come:"sementes",faz:"guardar comida nas bochechas",filho:"filhote",hab:"gaiola em casa",emoji:"🐹"},
+{n:"Calopsita",som:"assobiar",come:"sementes",faz:"cantar e imitar sons",filho:"filhote",hab:"gaiola em casa",emoji:"🦜"}];
+
+// ===== Tema visual por habitat: a fase fica com a cara do habitat =====
+function temaHabitat(hab){
+const h=(hab||"").toLowerCase();
+const T=(emoji,nome,bg,sub)=>({emoji,nome,bg,sub});
+if(h.includes("sítio")||h.includes("quintal")||h.includes("galinheiro")||h.includes("chiqueiro")||h.includes("gaiola")||h.includes("varanda")||h.includes("praça")||h.includes("jardim")||h.includes("casa"))return T("🏡","Sítio / Quintal","linear-gradient(135deg,#3f7d3a,#a8d86b)",hab);
+if(h.includes("pasto")||h.includes("fazenda")||h.includes("estrada"))return T("🌾","Fazenda / Pasto","linear-gradient(135deg,#4d7c0f,#facc15)",hab);
+if(h.includes("lago")&&!h.includes("salg"))return T("🪷","Lago do sítio","linear-gradient(135deg,#0ea5e9,#bbf7d0)",hab);
+if(h.includes("savana"))return T("🦁","Savana africana","linear-gradient(135deg,#b45309,#fde047)",hab);
+if(h.includes("ártico")||h.includes("antárt"))return T("❄️","Ártico / Antártida","linear-gradient(135deg,#0ea5e9,#f8fafc)",hab);
+if(h.includes("deserto")||h.includes("saara")||h.includes("kalahari"))return T("🏜️","Deserto","linear-gradient(135deg,#ea580c,#fde68a)",hab);
+if(h.includes("oceano")&&h.includes("profundo"))return T("🌌","Oceano profundo","linear-gradient(135deg,#020617,#1e3a8a)",hab);
+if(h.includes("oceano")||h.includes("mares")||h.includes("recife")||h.includes("praia")||h.includes("mangue"))return T("🌊","Oceano / Praia","linear-gradient(135deg,#0369a1,#67e8f9)",hab);
+if(h.includes("fundo do mar"))return T("🐙","Fundo do mar","linear-gradient(135deg,#0c4a6e,#22d3ee)",hab);
+if(h.includes("rio")||h.includes("xochimilco"))return T("🐊","Rio tropical","linear-gradient(135deg,#14532d,#4ade80)",hab);
+if(h.includes("floresta")||h.includes("mata")||h.includes("amaz"))return T("🌳","Floresta / Amazônia","linear-gradient(135deg,#052e16,#22c55e)",hab);
+if(h.includes("montanha")||h.includes("andes"))return T("⛰️","Montanhas","linear-gradient(135deg,#475569,#e2e8f0)",hab);
+if(h.includes("austrália")||h.includes("tasmânia")||h.includes("nova zelândia"))return T("🦘","Austrália","linear-gradient(135deg,#9a3412,#fdba74)",hab);
+if(h.includes("china")||h.includes("bornéu")||h.includes("sumatra")||h.includes("congo")||h.includes("áfrica")||h.includes("madagascar")||h.includes("indonésia")||h.includes("méxico")||h.includes("américas")||h.includes("brasil")||h.includes("cerrado")||h.includes("caatinga")||h.includes("norte"))return T("🌎","Selva do mundo","linear-gradient(135deg,#166534,#a3e635)",hab);
+if(h.includes("colmeia"))return T("🍯","Colmeia","linear-gradient(135deg,#a16207,#fde047)",hab);
+if(h.includes("lagoa"))return T("🦩","Lagoa salgada","linear-gradient(135deg,#db2777,#fed7aa)",hab);
+if(h.includes("todo lugar")||h.includes("musgo"))return T("🔬","Micro-habitat (musgo)","linear-gradient(135deg,#334155,#a5b4fc)",hab);
+if(h.includes("extinto"))return T("🦴","Passado pré-histórico","linear-gradient(135deg,#44403c,#d6d3d1)",hab);
+return T("🌿","Natureza","linear-gradient(135deg,#0b1f14,#22c55e)",hab);
+}
+
+// ===== SONS (WebAudio, sem arquivos) =====
+let AC=null, AMB=null;
+const sndOn=()=>load("quiz1000_snd_v1",true);
+const ambOn=()=>load("quiz1000_amb_v1",true);
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();return AC}
+function beep(f0,f1,dur,tipo="sine",vol=0.2,quando=0){if(!sndOn())return;try{const c=ac(),t=c.currentTime+quando,o=c.createOscillator(),g=c.createGain();o.type=tipo;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtValue(Math.max(30,f1),t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+0.02)}catch{}}
+const sClick=()=>beep(500,700,0.08,"square",0.08);
+const sOk=()=>{beep(523,523,0.12,"sine",0.2,0);beep(659,659,0.12,"sine",0.2,0.12);beep(784,784,0.2,"sine",0.22,0.24)};
+const sErr=()=>{beep(220,110,0.3,"sawtooth",0.15,0);beep(150,90,0.3,"sawtooth",0.12,0.1)};
+// som do animal: cada som vira um padrão diferente
+function somAnimal(nome,somRaw){
+if(!sndOn())return;
+const s=(somRaw||nome||"").toLowerCase();
+try{
+if(s.includes("latir")){for(let i=0;i<3;i++)beep(400,150,0.12,"square",0.2,i*0.16);return}
+if(s.includes("miar")){beep(600,900,0.35,"sine",0.2,0);beep(900,500,0.3,"sine",0.18,0.35);return}
+if(s.includes("mugir")||s.includes("muge")){beep(150,90,0.7,"sawtooth",0.2,0);return}
+if(s.includes("relinchar")){beep(800,300,0.5,"sawtooth",0.15,0);beep(1200,500,0.4,"square",0.08,0.1);return}
+if(s.includes("cacarejar")||s.includes("grasnar")||s.includes("grugrulejar")||s.includes("arrulhar")){for(let i=0;i<4;i++)beep(700+Math.random()*400,400,0.1,"square",0.12,i*0.13);return}
+if(s.includes("grunhir")||s.includes("zurrar")){beep(120,70,0.6,"sawtooth",0.22,0);return}
+if(s.includes("balir")||s.includes("bali")){beep(300,500,0.25,"triangle",0.2,0);beep(300,500,0.25,"triangle",0.2,0.3);return}
+if(s.includes("zumbir")){beep(180,220,0.8,"sawtooth",0.15,0);return}
+if(s.includes("chiar")||s.includes("assobiar")){beep(1200,2000,0.2,"sine",0.15,0);beep(2000,1200,0.2,"sine",0.15,0.2);return}
+if(s.includes("rug")||s.includes("juba")||nome.includes("Leão")){beep(90,50,1.0,"sawtooth",0.25,0);return}
+if(s.includes("ecolocal")||nome.includes("Golfinho")){for(let i=0;i<5;i++)beep(1500+i*300,2500,0.07,"sine",0.12,i*0.09);return}
+if(s.includes("piar")||s.includes("cantar")||s.includes("assobia")){beep(1000,1800,0.15,"sine",0.15,0);beep(1800,1200,0.15,"sine",0.15,0.15);return}
+beep(440,880,0.25,"triangle",0.18,0);
+}catch{}
+}
+// ambiente do habitat: ruído/chilros curtos em loop
+function pararAmb(){try{if(AMB){AMB.stop=true;AMB=null}}catch{}}
+function tocarAmb(hab){
+pararAmb();
+if(!sndOn()||!ambOn())return;
+try{
+const c=ac();const h=(hab||"").toLowerCase();
+const ctl={stop:false};AMB=ctl;
+let kind="floresta";
+if(h.includes("oceano")||h.includes("mar")||h.includes("praia")||h.includes("lago")||h.includes("rio"))kind="agua";
+else if(h.includes("deserto")||h.includes("saara")||h.includes("savana"))kind="vento";
+else if(h.includes("ártico")||h.includes("antárt"))kind="vento-frio";
+const buf=c.createBuffer(1,c.sampleRate*2,c.sampleRate);
+const d=buf.getChannelData(0);
+for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+const src=c.createBufferSource();src.buffer=buf;src.loop=true;
+const f=c.createBiquadFilter();f.type=kind==="agua"?"lowpass":"bandpass";f.frequency.value=kind==="agua"?400:kind==="floresta"?2000:600;
+const g=c.createGain();g.gain.value=kind==="agua"?0.05:0.03;
+src.connect(f).connect(g).connect(c.destination);src.start();
+ctl.src=src;
+const chirp=()=>{
+if(ctl.stop){try{src.stop()}catch{}return}
+if(kind==="floresta"&&sndOn()&&ambOn())beep(1500+Math.random()*1500,2500,0.08,"sine",0.04,0);
+setTimeout(chirp,900+Math.random()*1600);
+};
+chirp();
+}catch{}
+}
+function falar(texto){
+if(!sndOn())return;
+try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(texto);u.lang="pt-BR";u.rate=0.95;speechSynthesis.speak(u)}catch{}
+}
+
+// ===== BANCO TIER 2/3: selvagens + dados científicos =====
+// nome, habitat, dieta, fato, cientifico, classe, ordem
+const T2=[
+["Leão","savana africana","carnívora (zebras, gnus)","macho tem juba","Panthera leo","Mammalia","Carnivora"],
+["Tigre","florestas da Ásia","carnívora","maior felino do mundo","Panthera tigris","Mammalia","Carnivora"],
+["Elefante africano","savana e floresta","herbívora","maior animal terrestre","Loxodonta africana","Mammalia","Proboscidea"],
+["Girafa","savana","herbívora (acácia)","pescoço com 7 vértebras","Giraffa camelopardalis","Mammalia","Artiodactyla"],
+["Zebra","savana","herbívora","listras únicas como digital","Equus quagga","Mammalia","Perissodactyla"],
+["Hipopótamo","rios africanos","herbívora","passa o dia na água","Hippopotamus amphibius","Mammalia","Artiodactyla"],
+["Rinoceronte","savana","herbívora","chifre de queratina","Ceratotherium simum","Mammalia","Perissodactyla"],
+["Canguru","Austrália","herbívora","pula e carrega filhote no marsúpio","Macropus rufus","Mammalia","Diprotodontia"],
+["Coala","Austrália","eucalipto","dorme até 20h por dia","Phascolarctos cinereus","Mammalia","Diprotodontia"],
+["Panda-gigante","China","bambu","tem 'sexto dedo'","Ailuropoda melanoleuca","Mammalia","Carnivora"],
+["Urso-polar","Ártico","carnívora (focas)","pelo parece branco mas a pele é preta","Ursus maritimus","Mammalia","Carnivora"],
+["Lobo-cinzento","florestas do norte","carnívora","vive em alcateia","Canis lupus","Mammalia","Carnivora"],
+["Raposa","vários continentes","onívora","cauda peluda ajuda no equilíbrio","Vulpes vulpes","Mammalia","Carnivora"],
+["Coruja","florestas/noite","carnívora (ratos)","gira a cabeça até 270°","Tyto alba","Aves","Strigiformes"],
+["Águia-real","montanhas","carnívora","enxerga 8x melhor que humanos","Aquila chrysaetos","Aves","Accipitriformes"],
+["Tubarão-branco","oceanos","carnívora","sente 1 gota de sangue a metros","Carcharodon carcharias","Chondrichthyes","Lamniformes"],
+["Golfinho","oceanos","peixes e lulas","usa ecolocalização","Tursiops truncatus","Mammalia","Cetacea"],
+["Baleia-azul","oceanos","krill","maior animal que já existiu","Balaenoptera musculus","Mammalia","Cetacea"],
+["Polvo","fundo do mar","caranguejos","tem 3 corações e 8 braços","Octopus vulgaris","Cephalopoda","Octopoda"],
+["Camaleão","África/Madagascar","insetos","muda de cor e tem língua rápida","Chamaeleo calyptratus","Reptilia","Squamata"],
+["Crocodilo","rios tropicais","carnívora","mordida mais forte do reino animal","Crocodylus niloticus","Reptilia","Crocodilia"],
+["Dragão-de-komodo","Indonésia","carnívora","maior lagarto do mundo","Varanus komodoensis","Reptilia","Squamata"],
+["Axolote","México (lago Xochimilco)","pequenos peixes","regenera membros e vive como larva","Ambystoma mexicanum","Amphibia","Urodela"],
+["Ornitorrinco","Austrália","invertebrados aquáticos","mamífero que bota ovo","Ornithorhynchus anatinus","Mammalia","Monotremata"],
+["Tamanduá-bandeira","América do Sul","formigas e cupins","língua de 60 cm","Myrmecophaga tridactyla","Mammalia","Pilosa"],
+["Preguiça","Amazônia","folhas","move-se muito devagar","Bradypus variegatus","Mammalia","Pilosa"],
+["Arara-azul","Brasil","sementes e frutos","pode viver 60 anos","Anodorhynchus hyacinthinus","Aves","Psittaciformes"],
+["Tucano","Amazônia","frutas","bico grande e leve","Ramphastos toco","Aves","Piciformes"],
+["Flamingo","lagoas salgadas","algas e camarões","cor rosa vem da comida","Phoenicopterus roseus","Aves","Phoenicopteriformes"],
+["Pinguim-imperador","Antártida","peixes","aguenta -60°C","Aptenodytes forsteri","Aves","Sphenisciformes"],
+["Onça-pintada","Américas","carnívora","maior felino das Américas","Panthera onca","Mammalia","Carnivora"],
+["Lula-gigante","oceano profundo","peixes","olhos do tamanho de bola","Architeuthis dux","Cephalopoda","Oegopsida"],
+["Sapo-cururu","América do Sul","insetos","pele secreta toxina","Rhinella marina","Amphibia","Anura"],
+["Cobra-naja","Ásia/África","roedores","veneno neurotóxico e capuz","Naja naja","Reptilia","Squamata"],
+["Escorpião-imperador","África","insetos","brilha sob luz UV","Pandinus imperator","Arachnida","Scorpiones"],
+["Abelha-rainha","colmeias","geleia real","única que põe ovos na colmeia","Apis mellifera","Insecta","Hymenoptera"],
+["Borboleta-monarca","América do Norte","néctar/migra","migra 4000 km","Danaus plexippus","Insecta","Lepidoptera"],
+["Cavalo-marinho","mares rasos","plâncton","macho carrega os ovos","Hippocampus kuda","Actinopterygii","Syngnathiformes"],
+["Peixe-palhaço","recifes","algas e zooplâncton","vive em anêmonas","Amphiprion ocellaris","Actinopterygii","Perciformes"],
+["Água-viva","oceanos","plâncton","não tem cérebro nem coração","Aurelia aurita","Scyphozoa","Semaeostomeae"],
+["Estrela-do-mar","fundo do mar","moluscos","regenera braços","Asterias rubens","Asteroidea","Forcipulatida"],
+["Caranguejo","praias/mangues","onívora","anda de lado","Ucides cordatus","Malacostraca","Decapoda"],
+["Lula-vampira","oceano profundo","detritos","vive sem luz e com pouco oxigênio","Vampyroteuthis infernalis","Cephalopoda","Vampyromorphida"],
+["Tartaruga-marinha","oceanos","algas e águas-vivas","volta à praia onde nasceu p/ desovar","Chelonia mydas","Reptilia","Testudines"],
+["Jabuti","cerrado/caatinga","frutas e folhas","vive mais de 80 anos","Chelonoidis carbonarius","Reptilia","Testudines"],
+["Jacaré","América do Sul","peixes","difere do crocodilo pelo focinho largo","Caiman yacare","Reptilia","Crocodilia"],
+["Sucuri","Amazônia","capivaras e peixes","maior cobra das Américas","Eunectes murinus","Reptilia","Squamata"],
+["Harpa (gavião-real)","Amazônia","macacos e preguiças","ave de rapina mais forte","Harpia harpyja","Aves","Accipitriformes"],
+["Mico-leão-dourado","Mata Atlântica","frutas e insetos","em risco de extinção","Leontopithecus rosalia","Mammalia","Primates"],
+["Gorila","África central","folhas e frutos","maior primata","Gorilla beringei","Mammalia","Primates"],
+["Chimpanzé","África","frutas","usa ferramentas","Pan troglodytes","Mammalia","Primates"],
+["Orangotango","Bornéu/Sumatra","frutas","mais arborícola dos primatas","Pongo abelii","Mammalia","Primates"],
+["Hiena","África","carniça e caça","risada famosa","Crocuta crocuta","Mammalia","Carnivora"],
+["Suricato","deserto do Kalahari","insetos","vigia em pé contra predadores","Suricata suricatta","Mammalia","Carnivora"],
+["Fennec (raposa do deserto)","Saara","insetos e frutas","orelhas gigantes dissipam calor","Vulpes zerda","Mammalia","Carnivora"],
+["Okapi","Congo","folhas","parente da girafa","Okapia johnstoni","Mammalia","Artiodactyla"],
+["Equidna","Austrália","formigas","mamífero que bota ovo e tem espinhos","Tachyglossus aculeatus","Mammalia","Monotremata"],
+["Diabo-da-tasmânia","Tasmânia","carniça","mandíbula muito forte","Sarcophilus harrisii","Mammalia","Dasyuromorphia"],
+["Wombat","Austrália","gramíneas","fezes em formato de cubo","Vombatus ursinus","Mammalia","Diprotodontia"],
+["Kiwi","Nova Zelândia","insetos","ave que não voa, ovo gigante","Apteryx australis","Aves","Apterygiformes"],
+["Avestruz","África","sementes e insetos","maior ave, não voa","Struthio camelus","Aves","Struthioniformes"],
+["Ema","América do Sul","frutas e insetos","maior ave das Américas","Rhea americana","Aves","Rheiformes"],
+["Condor","Andes","carniça","voa 5h sem bater asas","Vultur gryphus","Aves","Cathartiformes"],
+["Beija-flor","Américas","néctar","bate 80x as asas por segundo","Trochilus polytmus","Aves","Apodiformes"],
+["Morcego-vampiro","Américas","sangue","único mamífero que voa de verdade","Desmodus rotundus","Mammalia","Chiroptera"],
+["Bicho-preguiça-gigante (fóssil)","Américas (extinto)","folhas","chegava a 6 metros","Megatherium americanum","Mammalia","Pilosa"],
+["Tigre-dente-de-sabre (fóssil)","Américas (extinto)","grandes presas","caninos de 20 cm","Smilodon populator","Mammalia","Carnivora"],
+["Celacanto","oceano Índico","peixes","'fóssil vivo' de 400 mi de anos","Latimeria chalumnae","Sarcopterygii","Coelacanthiformes"],
+["Nautilo","Pacífico","pequenos crustáceos","concha em espiral perfeita","Nautilus pompilius","Cephalopoda","Nautilida"],
+["Tardígrado","todo lugar (musgo)","algas","sobrevive no espaço sideral","Hypsibius dujardini","Eutardigrada","Parachela"]];
+
+const $=id=>document.getElementById(id);
+const SAVE="quiz1000_save_v1", BEST="quiz1000_best_v1";
+const load=(k,f)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v??f}catch{return f}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+let G=null; // {fase, pts, vidas, hints, skips, nome, timerId, timeLeft, locked}
+
+function categoria(f){return f<=50?["🐶 Dia a dia","dia"]:f<=500?["🦁 Selvagem","selv"]:["🔬 Científico","sci"]}
+function tempoLimite(f){return f<=50?60:f<=200?30:f<=500?20:f<=800?15:10}
+// Regra pedida: acerto +10, erro −5 (mínimo 0). Bônus de loja pode dar tempo extra.
+const PTS_OK=10, PTS_ERR=5;
+// ===== LOJA (gasta os pontos ganhos: +10 acerto / −5 erro) =====
+const SHOP=[
+{id:"vida",icon:"❤️",nome:"Vida extra +1",desc:"Ganha 1 coração na corrida atual (máx 5)",custo:50,tipo:"vida"},
+{id:"pocao-vida",icon:"🧪",nome:"Poção de vida",desc:"Recupera 2 corações na hora (máx 5)",custo:80,tipo:"pocao"},
+{id:"tempo",icon:"⏱",nome:"Tempo extra +15s",desc:"+15s no relógio desta fase",custo:40,tipo:"tempo"},
+{id:"pocao-tempo",icon:"⏳",nome:"Poção do tempo",desc:"Congela o timer por 10s nesta fase",custo:70,tipo:"pocao"},
+{id:"dica",icon:"💡",nome:"Dicas +2",desc:"+2 ajudas 50/50 na corrida atual",custo:30,tipo:"dica"},
+{id:"pocao-sabia",icon:"🔮",nome:"Poção da sabedoria",desc:"Elimina 2 erradas AGORA nesta pergunta",custo:45,tipo:"pocao"},
+{id:"pulo",icon:"⏭",nome:"Pulos +2",desc:"+2 pulos de fase na corrida atual",custo:30,tipo:"pulo"},
+{id:"escudo",icon:"🛡️",nome:"Escudo",desc:"1 erro não tira vida nesta corrida",custo:60,tipo:"escudo"},
+];
+
+function distractores(pool,certo,r,n){const out=[];const c=new Set([certo]);let i=Math.floor(r()*pool.length);let guard=0;while(out.length<n&&guard++<500){const c2=pool[i%pool.length];i+=3+Math.floor(r()*5);if(!c.has(c2)){c.add(c2);out.push(c2)}}return out}
+
+// Gera a questão da fase (1..1000) de forma determinística
+// Sempre retorna {q,ops,certa,exp,animal,hab,som,emoji} — a fase veste o habitat
+function questao(fase){
+const r=rng(fase*7919+13);
+if(fase<=50){
+const a=T1[(fase*7+3)%T1.length];
+const poolN=T1.map(t=>t.n);
+const t=fase%6;
+const base={animal:a.n,hab:a.hab,som:a.som,emoji:a.emoji};
+let q,certa,exp;
+if(t===1){q=`${a.emoji} Qual animal faz "${a.som}"?`;certa=a.n;exp=`${a.n} faz "${a.som}".`}
+else if(t===2){q=`${a.emoji} Qual animal ${a.faz}?`;certa=a.n;exp=`${a.n}: ${a.faz}.`}
+else if(t===3){q=`${a.emoji} O que o(a) ${a.n} come?`;const ops=shuffle([a.come,...distractores(T1.map(t=>t.come),a.come,r,3)],r);return Object.assign({q,ops,certa:a.come,exp:`${a.n} come ${a.come}.`},base);}
+else if(t===4){q=`${a.emoji} Como se chama o filhote de ${a.n}?`;const ops=shuffle([a.filho,...distractores(T1.map(t=>t.filho),a.filho,r,3)],r);return Object.assign({q,ops,certa:a.filho,exp:`Filhote de ${a.n}: ${a.filho}.`},base);}
+else if(t===5){q=`${a.emoji} Qual destes animais vive no quintal/sítio como o(a) ${a.n}?`;certa=a.n;exp=`${a.n} é animal doméstico do dia a dia.`;}
+else{q=`${a.emoji} Qual animal é conhecido porque ${a.faz}?`;certa=a.n;exp=`Lembre: ${a.n} — ${a.faz}.`;}
+const ops=shuffle([certa,...distractores(poolN,certa,r,3)],r);
+return Object.assign({q,ops,certa,exp},base);
+}
+if(fase<=500){
+const e=T2[(fase*13+7)%T2.length];
+const t=fase%5;
+const base={animal:e[0],hab:e[1],som:e[3],emoji:"🦁"};
+let q,certa,exp;
+if(t===1){q=`🌿 Onde vive o(a) ${e[0]}?`;certa=e[1];const ops=shuffle([certa,...distractores(T2.map(x=>x[1]),certa,r,3)],r);return Object.assign({q,ops,certa,exp:`${e[0]} vive: ${e[1]}.`},base);}
+if(t===2){q=`🍽 O que o(a) ${e[0]} come?`;certa=e[2];const ops=shuffle([certa,...distractores(T2.map(x=>x[2]),certa,r,3)],r);return Object.assign({q,ops,certa,exp:`Dieta: ${e[2]}.`},base);}
+if(t===3){q=`❓ Qual curiosidade sobre o(a) ${e[0]}?`;certa=e[3];const ops=shuffle([certa,...distractores(T2.map(x=>x[3]),certa,r,3)],r);return Object.assign({q,ops,certa,exp:`${e[0]}: ${e[3]}.`},base);}
+if(t===4){q=`🔎 Qual animal tem esta característica: "${e[3]}"?`;certa=e[0];const ops=shuffle([certa,...distractores(T2.map(x=>x[0]),certa,r,3)],r);return Object.assign({q,ops,certa,exp:`É o(a) ${e[0]}.`},base);}
+q=`🌿 O(a) ${e[0]} vive onde e come o quê?`;certa=`${e[1]} · ${e[2]}`;const ops=shuffle([certa,...distractores(T2.map(x=>`${x[1]} · ${x[2]}`),certa,r,3)],r);return Object.assign({q,ops,certa,exp:`${e[0]}: ${e[1]}, dieta ${e[2]}.`},base);
+}
+// 501-1000 científico
+const e=T2[(fase*17+5)%T2.length];
+const t=fase%6;
+const base={animal:e[0],hab:e[1],som:e[3],emoji:"🔬"};
+if(t===1){const ops=shuffle([e[4],...distractores(T2.map(x=>x[4]),e[4],r,3)],r);return Object.assign({q:`🔬 Qual o nome científico de ${e[0]}?`,ops,certa:e[4],exp:`${e[0]} = ${e[4]}.`},base);}
+if(t===2){const ops=shuffle([e[0],...distractores(T2.map(x=>x[0]),e[0],r,3)],r);return Object.assign({q:`🔬 Qual animal tem o nome científico "${e[4]}"?`,ops,certa:e[0],exp:`${e[4]} é ${e[0]}.`},base);}
+if(t===3){const ops=shuffle([e[5],...distractores(T2.map(x=>x[5]),e[5],r,3)],r);return Object.assign({q:`🔬 A que CLASSE pertence ${e[0]} (${e[4]})?`,ops,certa:e[5],exp:`${e[0]}: classe ${e[5]}.`},base);}
+if(t===4){const ops=shuffle([e[6],...distractores(T2.map(x=>x[6]),e[6],r,3)],r);return Object.assign({q:`🔬 A que ORDEM pertence ${e[0]}?`,ops,certa:e[6],exp:`${e[0]}: ordem ${e[6]}.`},base);}
+if(t===5){const ops=shuffle([e[1],...distractores(T2.map(x=>x[1]),e[1],r,3)],r);return Object.assign({q:`[🔬] Habitat científico de ${e[4]}?`,ops,certa:e[1],exp:`${e[4]} vive: ${e[1]}.`},base);}
+const certa=`${e[5]} / ${e[6]}`;const ops=shuffle([certa,...distractores(T2.map(x=>`${x[5]} / ${x[6]}`),certa,r,3)],r);return Object.assign({q:`[🔬] Classe / Ordem de ${e[0]} (${e[4]})?`,ops,certa,exp:`${e[0]}: ${e[5]} / ${e[6]}.`},base);
+}
+
+function show(id){["s-start","s-game","s-shop","s-end"].forEach(s=>$(s).style.display="none");$(id).style.display="block"}
+function refreshMenu(){const s=load(SAVE,null);const b=load(BEST,null);$("b-cont").disabled=!s;const w=s?s.pts:0;$("w-menu").textContent=w;$("save-info").textContent=s?`Salvo: ${s.nome} · fase ${s.fase}/1000 · ${s.pts} ⭐`:"Nenhum progresso salvo.";$("best").textContent=b?`${b.nome} — fase ${b.fase} · ${b.pts} ⭐`:"—";const pn=load("luis_player", "");if(pn)$("player").value=pn;}
+
+function startRun(fase,pts,vidas,hints,skips,nome,escudo){
+G={fase,pts,vidas,hints,skips,nome,escudo:!!escudo,locked:false};
+save("luis_player",nome);
+renderQ();
+show("s-game");
+}
+// loja usa G.pts se estiver jogando, senão o save
+function carteira(){if(G)return G.pts;const s=load(SAVE,null);return s?s.pts:0}
+function gastar(v){if(G){G.pts=Math.max(0,G.pts-v)}else{const s=load(SAVE,null);if(!s)return false;s.pts=Math.max(0,s.pts-v);save(SAVE,s)}persistShop();return true}
+function persistShop(){try{if(G)persist();refreshMenu();$("w-shop").textContent=carteira();$("h-pts").textContent=`⭐ ${carteira()}`}catch{}}
+function renderShop(deOnde){
+$("w-shop").textContent=carteira();
+const list=$("shop-list");list.innerHTML="";
+for(const it of SHOP){
+const row=document.createElement("div");row.className="shop-item";
+const info=document.createElement("div");info.className="info";
+info.innerHTML=`<b>${it.icon} ${it.nome} — ${it.custo} ⭐</b><br><small>${it.desc}</small>`;
+const btn=document.createElement("button");btn.className="btn";btn.style.margin="0";btn.textContent="Comprar";
+btn.disabled=carteira()<it.custo;
+if(it.id==="vida"&&G&&G.vidas>=5)btn.disabled=true;
+btn.onclick=()=>{
+if(carteira()<it.custo)return;
+if(!G){alert("Entre na corrida para usar a loja! Os pontos ficam salvos.");return}
+if(it.id==="vida"){if(G.vidas>=5)return;gastar(it.custo);G.vidas++;$("h-life").textContent="❤️".repeat(G.vidas);sOk()}
+else if(it.id==="pocao-vida"){if(G.vidas>=5)return;gastar(it.custo);G.vidas=Math.min(5,G.vidas+2);$("h-life").textContent="❤️".repeat(G.vidas);sOk()}
+else if(it.id==="dica"){gastar(it.custo);G.hints+=2;persistShop();sOk()}
+else if(it.id==="pocao-sabia"){gastar(it.custo);persistShop();sOk();usarSabedoria();renderShop(deOnde);return}
+else if(it.id==="pulo"){gastar(it.custo);G.skips+=2;persistShop();sOk()}
+else if(it.id==="tempo"){gastar(it.custo);G.timeLeft+=15;$("h-time").textContent=`⏱ ${G.timeLeft}s`;persistShop();sOk()}
+else if(it.id==="pocao-tempo"){gastar(it.custo);persistShop();sOk();congelarTempo();renderShop(deOnde);return}
+else if(it.id==="escudo"){if(G.escudo)return;gastar(it.custo);G.escudo=true;persistShop();sOk()}
+renderShop(deOnde);
+};
+row.appendChild(info);row.appendChild(btn);list.appendChild(row);
+}
+G&&(G._shopFrom=deOnde);
+show("s-shop");
+}
+function renderQ(){
+clearInterval(G.timerId);
+G.locked=false;
+const [catTxt]=categoria(G.fase);
+const Q=questao(G.fase);
+G.Q=Q;
+// habitat visual: fundo + banner iguais ao habitat do animal
+try{
+const th=temaHabitat(Q.hab);
+document.body.style.background=th.bg;
+$("hab-emoji").textContent=(Q.emoji||"")+(th.emoji||"");
+$("hab-name").textContent=`${th.nome} — ${Q.animal}`;
+$("hab-sub").textContent=`Fase ${G.fase} · habitat: ${Q.hab} · som: ${Q.som}`;
+tocarAmb(Q.hab);
+}catch{}
+$("h-fase").textContent=`Fase ${G.fase}/1000`;
+$("h-cat").textContent=catTxt;
+$("h-pts").textContent=`⭐ ${G.pts}`;
+$("h-life").textContent="❤️".repeat(G.vidas)+"🤍".repeat(Math.max(0,3-G.vidas));
+$("h-hint").textContent=`💡 ${G.hints}`;
+$("prog").style.width=(G.fase/10)+"%";
+$("q").textContent=Q.q;
+$("exp").style.display="none";$("exp").textContent="";
+$("msg").textContent=`Checkpoint a cada 25 fases · pular: ${G.skips}`;
+const box=$("opts");box.innerHTML="";
+Q.ops.forEach(op=>{
+const b=document.createElement("button");b.className="opt";b.textContent=op;
+b.onclick=()=>{sClick();responder(op,b)};
+box.appendChild(b);
+});
+$("b-hint").disabled=G.hints<=0;
+$("b-skip").disabled=G.skips<=0;
+// timer
+let T=tempoLimite(G.fase);G.timeLeft=T;G.total=T;
+$("h-time").textContent=`⏱ ${T}s`;
+G.timerId=setInterval(()=>{
+G.timeLeft--;
+$("h-time").textContent=`⏱ ${G.timeLeft}s`;
+if(G.timeLeft<=0){clearInterval(G.timerId);errou("⏱ Tempo esgotado!",null);}
+},1000);
+}
+function responder(op,btn){
+if(G.locked)return;G.locked=true;clearInterval(G.timerId);
+const ok=op===G.Q.certa;
+const btns=[...document.querySelectorAll(".opt")];
+btns.forEach(b=>{b.disabled=true;if(b.textContent===G.Q.certa)b.classList.add("ok")});
+if(ok){
+btn.classList.add("ok");sOk();
+G.pts+=PTS_OK;
+$("h-pts").textContent=`⭐ ${G.pts}`;
+$("exp").style.display="block";$("exp").textContent=`✅ +${PTS_OK} ⭐ · ${G.Q.exp}`;
+$("msg").textContent="Muito bem! Próxima fase...";
+setTimeout(()=>{G.fase++;if(G.fase>1000){vitoria();return}persist();renderQ()},1100);
+}else{
+btn.classList.add("err");sErr();
+errou(`❌ Era "${G.Q.certa}". ${G.Q.exp} (−${PTS_ERR} ⭐)`,btn);
+}
+}
+function errou(msg){
+if(G.locked&&msg===undefined)return;G.locked=true;clearInterval(G.timerId);
+document.querySelectorAll(".opt").forEach(b=>{b.disabled=true;if(b.textContent===G.Q.certa)b.classList.add("ok")});
+// −5 pontos em qualquer erro/tempo, sem negativar
+G.pts=Math.max(0,G.pts-PTS_ERR);
+$("h-pts").textContent=`⭐ ${G.pts}`;
+// escudo da loja absorve 1 erro sem perder vida
+if(G.escudo){G.escudo=false;$("exp").style.display="block";$("exp").textContent=(msg||"")+` 🛡️ Escudo quebrou e salvou sua vida! (−${PTS_ERR} ⭐)`;$("msg").textContent="Escudo usado! Repetindo a fase...";setTimeout(()=>{persist();renderQ()},1800);return}
+G.vidas--;
+$("h-life").textContent="❤️".repeat(Math.max(0,G.vidas))+"🤍".repeat(Math.max(0,5-G.vidas));
+$("exp").style.display="block";$("exp").textContent=msg||"";
+if(G.vidas<=0){$("msg").textContent="Sem vidas...";setTimeout(()=>gameOver(),1400);return}
+$("msg").textContent=`${msg} (vidas: ${G.vidas}) — repetindo a fase...`;
+setTimeout(()=>{persist();renderQ()},1800);
+}
+function persist(){
+save(SAVE,{fase:G.fase,pts:G.pts,vidas:G.vidas,hints:G.hints,skips:G.skips,nome:G.nome,escudo:!!G.escudo});
+const b=load(BEST,null);
+if(!b||G.pts>b.pts)save(BEST,{nome:G.nome,fase:G.fase,pts:G.pts});
+}
+function usarSabedoria(){try{show("s-game");const btns=[...document.querySelectorAll(".opt")].filter(b=>b.textContent!==G.Q.certa&&!b.disabled);shuffle(btns,rng(Date.now()%100000)).slice(0,2).forEach(b=>b.disabled=true)}catch{}}
+function congelarTempo(){try{show("s-game");clearInterval(G.timerId);$("h-time").textContent=`⏸ ${G.timeLeft}s (congelado 10s)`;setTimeout(()=>{if(!G||G.locked)return;G.timerId=setInterval(()=>{G.timeLeft--;$("h-time").textContent=`⏱ ${G.timeLeft}s`;if(G.timeLeft<=0){clearInterval(G.timerId);errou("⏱ Tempo esgotado!",null)}},1000)},10000)}catch{}}
+function gameOver(){
+persist();
+$("e-emoji").textContent="💀";
+$("e-title").textContent="Fim de jogo!";
+$("e-text").textContent=`${G.nome}: chegou à fase ${G.fase}/1000 com ${G.pts} pts (${categoria(G.fase)[0]}). Checkpoint: fase ${Math.max(1,Math.floor((G.fase-1)/25)*25+1)}.`;
+show("s-end");refreshMenu();
+}
+function vitoria(){
+localStorage.removeItem(SAVE);
+save(BEST,{nome:G.nome,fase:1000,pts:G.pts});
+$("e-emoji").textContent="🏆";
+$("e-title").textContent="Você zerou as 1000 fases! 🎉";
+$("e-text").textContent=`${G.nome} é MESTRE dos animais com ${G.pts} pts! 🔬🐾`;
+show("s-end");refreshMenu();
+}
+$("b-new").onclick=()=>{const n=($("player").value||"Jogador").trim().slice(0,20)||"Jogador";startRun(1,0,3,3,3,n,false)};
+$("b-cont").onclick=()=>{const s=load(SAVE,null);if(!s)return;const n=($("player").value||s.nome).trim().slice(0,20)||s.nome;startRun(s.fase,s.pts,s.vidas??3,s.hints??3,s.skips??3,n,s.escudo??false)};
+$("b-quit").onclick=()=>{persist();show("s-start");refreshMenu()};
+$("b-again").onclick=()=>{const n=G?.nome||"Jogador";startRun(1,0,3,3,3,n,false)};
+$("b-menu").onclick=()=>{show("s-start");refreshMenu()};
+$("b-shop").onclick=()=>renderShop("menu");
+$("b-shop2").onclick=()=>{persist();renderShop("game")};
+$("b-shop-back").onclick=()=>{if(G&&G._shopFrom==="game"){show("s-game")}else{show("s-start");refreshMenu()}};
+$("b-hint").onclick=()=>{
+if(G.locked||G.hints<=0)return;G.hints--;$("h-hint").textContent=`💡 ${G.hints}`;$("b-hint").disabled=G.hints<=0;
+const btns=[...document.querySelectorAll(".opt")].filter(b=>b.textContent!==G.Q.certa&&!b.disabled);
+shuffle(btns,rng(Date.now()%100000)).slice(0,2).forEach(b=>b.disabled=true);
+};
+$("b-skip").onclick=()=>{
+if(G.locked||G.skips<=0)return;clearInterval(G.timerId);G.skips--;G.fase++;
+if(G.fase>1000){vitoria();return}persist();renderQ();
+};
+function refreshSndBtns(){try{$("b-snd").textContent=sndOn()?"🔊 Som: ON":"🔇 Som: OFF";$("b-amb").textContent=ambOn()?"🌿 Ambiente: ON":"🌿 Ambiente: OFF"}catch{}}
+$("b-snd").onclick=()=>{save("quiz1000_snd_v1",!sndOn());if(!sndOn()){pararAmb();try{speechSynthesis.cancel()}catch{}}else if(G&&G.Q)tocarAmb(G.Q.hab);refreshSndBtns()};
+$("b-amb").onclick=()=>{save("quiz1000_amb_v1",!ambOn());if(!ambOn())pararAmb();else if(G&&G.Q)tocarAmb(G.Q.hab);refreshSndBtns()};
+$("b-animal").onclick=()=>{if(G&&G.Q)somAnimal(G.Q.animal,G.Q.som)};
+$("b-tts").onclick=()=>{if(G&&G.Q)falar(G.Q.q+". Opções: "+G.Q.ops.join(", "))};
+refreshSndBtns();
+refreshMenu();
+</script>
+</body>
+</html>
