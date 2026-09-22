@@ -15,6 +15,8 @@
     #hud span { background: #1d4030; padding: 6px 12px; border-radius: 99px; }
     #h-chute { background: #7c2d12 !important; display: none; }
     #stage { position: relative; }
+    #praise { position: absolute; top: 12px; left: 50%; transform: translateX(-50%) scale(.8); background: rgba(5,46,22,.85); border: 2px solid #22c55e; color: #fff; font-weight: 900; font-size: 26px; padding: 8px 22px; border-radius: 99px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; white-space: nowrap; }
+    #praise.show { opacity: 1; transform: translateX(-50%) scale(1); }
     #cv3d { width: 100%; height: auto; border-radius: 12px; display: block; touch-action: none; background: #87bfe8; }
     .btn { display: inline-block; padding: 12px 20px; margin: 6px 4px 0 0; border: 0; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; background: #22c55e; color: #052e16; }
     .btn.sec { background: #334155; color: #fff; }
@@ -40,7 +42,7 @@
     <div id="screen-start" class="overlay">
       <div class="big">🐵🎮</div>
       <h1>Luis, o Macaco — 3D em Primeira Pessoa</h1>
-      <p>Você <b>é o Luis</b>: corra pela selva realista sem fim!<br>⛔ Desvie de troncos, 🌵 espinhos e 🐍 cobras — <b>pule com Espaço</b> e o <b>paraquedas 🪂 abre sozinho</b>.<br>🍌 Bananas viram moeda na <b>loja</b>.</p>
+      <p>Você <b>é o Luis</b>: corra pela selva realista sem fim!<br>⛔ Desvie de troncos, 🌵 espinhos e 🐍 cobras — <b>pule com Espaço</b> e o <b>paraquedas 🪂 abre sozinho</b>.<br>🍌 Bananas viram moeda na <b>loja</b>.<br>🎉 A cada <b>100m</b> o Luis fala <b>MUITO BEM!</b> 🔊</p>
       <input id="player" type="text" placeholder="Seu nome (ex: Alice)" maxlength="20" />
       <br />
       <button id="btn-start" class="btn">Entrar na selva ▶</button>
@@ -65,7 +67,7 @@
         <span id="h-chute">🪂 PARAQUEDAS ABERTO</span>
         <span id="h-best">🏆 —</span>
       </div>
-      <div id="stage"><canvas id="cv3d" width="960" height="540"></canvas></div>
+      <div id="stage"><canvas id="cv3d" width="960" height="540"></canvas><div id="praise">🎉 MUITO BEM! 🎉</div></div>
       <div id="err3d">⚠️ Não foi possível carregar o 3D (verifique a internet p/ o CDN do Three.js) — o resto do site continua funcionando.</div>
       <div id="touch">
         <button id="t-left">◀</button>
@@ -97,7 +99,7 @@ import * as THREE from 'three';
 // ---------- persistência (mesmas chaves: saldo mantido!) ----------
 const SHOP = [
   { id: "shoes",  icon: "👟", name: "Tênis veloz",    desc: "+20% velocidade",              cost: 25 },
-  { id: "chute",  icon: "🪂", name: "Paraquedas PRO", desc: "descida super lenta + pulo maior", cost: 30 },
+  { id: "chute",  icon: "🪂", name: "Paraquedas PRO", desc: "planeio suave sem flutuar + pulo maior", cost: 30 },
   { id: "magnet", icon: "🧲", name: "Imã de banana",  desc: "atrai bananas de longe",       cost: 40 },
   { id: "life",   icon: "❤️", name: "Coração extra",  desc: "começa com 4 vidas",           cost: 50 },
   { id: "shield", icon: "🛡️", name: "Escudo",         desc: "1 impacto grátis por corrida", cost: 60 },
@@ -112,8 +114,9 @@ const mods = () => {
   const o = owned();
   return {
     speed: 11 * (o.shoes ? 1.2 : 1),
-    jumpV: 7.5 + (o.chute ? 1.2 : 0),
-    gravUp: 18, gravDown: o.chute ? 2.6 : 4.2,
+    // pulo firme e rápido: sem flutuar (queda forte, voo curto)
+    jumpV: 6.5 + (o.chute ? 1.0 : 0),
+    gravUp: 22, gravDown: o.chute ? 8 : 11,
     magnet: o.magnet ? 2.6 : 1.3,
     lives: o.life ? 4 : 3,
     shield: !!o.shield,
@@ -378,12 +381,49 @@ function addObstacle(kind, x, z) {
 // ---------- corrida ----------
 function resetRun() {
   const m = mods();
-  S = { px: 0, pz: 0, py: 0, vy: 0, air: false, nextZ: -20, dist: 0, got: 0, lives: m.lives, shield: m.shield, t0: performance.now(), elapsed: 0, paused: false, over: false, invulnUntil: 0, maxSpeed: m.speed };
+  S = { px: 0, pz: 0, py: 0, vy: 0, air: false, jumpBuf: false, nextZ: -20, dist: 0, got: 0, lives: m.lives, shield: m.shield, t0: performance.now(), elapsed: 0, paused: false, over: false, invulnUntil: 0, maxSpeed: m.speed, nextPraise: 100 };
   for (const b of bananas) { b.active = false; b.mesh.visible = false; }
   for (const o of obstacles) { o.active = false; o.g.visible = false; }
+  hidePraise();
   setMsg("Você é o Luis 🐵 — pule os troncos e plane de paraquedas! 🪂");
 }
 function setMsg(t) { $("msg").textContent = t; }
+
+// fala "MUITO BEM!" a cada 100m: banner + voz + jingle (sem arquivos)
+let praiseTimer = null;
+function hidePraise() { try { $("praise").classList.remove("show"); } catch {} if (praiseTimer) { clearTimeout(praiseTimer); praiseTimer = null; } }
+function praiseLuis(metros) {
+  try {
+    const el = $("praise");
+    el.textContent = `🎉 ${metros}m — MUITO BEM! 🐵👏`;
+    el.classList.add("show");
+    if (praiseTimer) clearTimeout(praiseTimer);
+    praiseTimer = setTimeout(hidePraise, 2200);
+  } catch {}
+  // voz
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(`Muito bem! ${metros} metros!`);
+    u.lang = "pt-BR"; u.rate = 1.05; u.pitch = 1.2;
+    speechSynthesis.speak(u);
+  } catch {}
+  // jingle rápido (sem arquivos)
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) {
+      const c = new Ctx();
+      [523, 659, 784, 1047].forEach((f, i) => {
+        const t = c.currentTime + i * 0.11;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = "triangle"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.2);
+      });
+      setTimeout(() => c.close(), 900);
+    }
+  } catch {}
+}
 
 function hurt(msg) {
   const now = performance.now();
@@ -410,13 +450,19 @@ function update(dt) {
   S.pz -= spd * dt;
   S.dist = Math.floor(-S.pz);
 
-  // pulo + paraquedas
-  const J = keys[" "] || keys["arrowup"] || keys["w"];
-  if (J && !S.air) { S.vy = m.jumpV; S.air = true; }
+  // 🎉 a cada 100m o Luis fala MUITO BEM!
+  if (S.dist >= S.nextPraise) {
+    praiseLuis(S.nextPraise);
+    S.nextPraise += 100;
+  }
+
+  // pulo firme: só pula num toque novo (segurar não deixa flutuando)
+  if (S.jumpBuf && !S.air) { S.vy = m.jumpV; S.air = true; S.jumpBuf = false; }
+  if (!S.air) S.jumpBuf = false;
   if (S.air) {
-    S.vy -= (S.vy > 0 ? m.gravUp : m.gravDown) * dt; // descida lenta = paraquedas
+    S.vy -= (S.vy > 0 ? m.gravUp : m.gravDown) * dt; // queda forte = sem flutuar
     S.py += S.vy * dt;
-    if (S.py <= 0) { S.py = 0; S.vy = 0; S.air = false; }
+    if (S.py <= 0 || S.vy < -14) { S.py = 0; S.vy = 0; S.air = false; } // pouso seco no chão
   }
   spawnAhead();
 
@@ -459,11 +505,11 @@ function update(dt) {
   sun.position.set(px - 18, 30, pz + 8);
   sun.target.position.set(px, 0, pz - 20); sun.target.updateMatrixWorld();
 
-  // câmera 1ª pessoa (olhos do Luis) + balanço de corrida
+  // câmera 1ª pessoa (olhos do Luis) — grudada no corpo, sem flutuar
   const t = performance.now() / 1000;
-  const bob = S.air ? 0 : Math.sin(t * 11) * 0.06;
-  camera.position.set(px, 2.0 + py + bob, pz);
-  camera.lookAt(px * 0.92, 1.75 + py * 0.35, pz - 12);
+  const bob = S.air ? Math.sin(t * 3) * 0.02 : Math.sin(t * 11) * 0.06;
+  camera.position.set(px, 1.9 + py + bob, pz);
+  camera.lookAt(px * 0.92, 1.65 + py * 0.9, pz - 12);
   rig.position.copy(camera.position);
   rig.quaternion.copy(camera.quaternion);
   armL.position.y = armR.position.y = -0.55 + (S.air ? 0.12 : Math.sin(t * 11) * 0.03);
@@ -500,6 +546,8 @@ function gameOver() {
 function quitToMenu(bank) {
   if (S && bank && S.got > 0 && !S.over) setWallet(wallet() + S.got);
   if (S) S.over = true;
+  hidePraise();
+  try { speechSynthesis.cancel(); } catch {}
   show("screen-start"); showBest();
 }
 function togglePause() {
@@ -527,6 +575,8 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
   keys[k] = true;
   if (e.code === "Space") keys[" "] = true; // garante o pulo em qualquer layout de teclado
+  // toque novo de pulo (ignora repetição ao segurar): sem flutuar
+  if (!e.repeat && (e.code === "Space" || k === "arrowup" || k === "w") && S && !S.air) S.jumpBuf = true;
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k) || e.code === "Space") e.preventDefault();
   if (k === "p") togglePause();
 });
@@ -536,7 +586,7 @@ window.addEventListener("keyup", (e) => {
 });
 function bindHold(id, key) {
   const el = $(id);
-  const on = (e) => { e.preventDefault(); keys[key] = true; };
+  const on = (e) => { e.preventDefault(); keys[key] = true; if (key === " " && S && !S.air) S.jumpBuf = true; };
   const off = (e) => { e.preventDefault(); keys[key] = false; };
   el.addEventListener("pointerdown", on);
   el.addEventListener("pointerup", off);
