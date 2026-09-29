@@ -47,7 +47,7 @@
       <br />
       <button id="btn-start" class="btn">Entrar na selva ▶</button>
       <button id="btn-shop" class="btn sec">🛒 Loja (<span id="wallet-menu">0</span> 🍌)</button>
-      <p><small>Controles: ←/→ ou A/D para os lados · <b>toque no Espaço/↑/W</b> = pulinho · <b>SEGURE</b> = pulão · P pausar · Mouse não necessário</small></p>
+      <p><small>Controles: ←/→ ou A/D para os lados · <b>toque no Espaço/↑/W</b> = pulinho · <b>SEGURE</b> = pulão · <b>No mar 🤿: SEGURE p/ nadar p/ cima, solte p/ descer</b> · P pausar · Mouse não necessário</small></p>
       <p><small>🏆 Recorde: <span id="best-start">—</span></small></p>
     </div>
 
@@ -178,7 +178,7 @@ function renderShop() {
 // ---------- mundo 3D ----------
 let renderer, scene, camera, sun, hemi, rig, armL, armR, chute, chuteCords = [];
 let groundSegs = [], trees = [], clouds = [], mounts = [], bananas = [], obstacles = [];
-let sub = null, can = null, fishes = [], bubbles = [], seaweeds = [], sunBall = null;
+let sub = null, can = null, fishes = [], octos = [], bubbles = [], seaweeds = [], sunBall = null;
 let grassMat = null, dirtMat = null;
 let S = null; // estado da corrida
 const keys = {};
@@ -371,6 +371,30 @@ function buildSeaLife() {
     scene.add(g);
     fishes.push({ g, speed: 1 + Math.random() * 2, off: Math.random() * 10 });
   }
+  // 🐙 polvos nadando (amigos do fundo do mar)
+  for (let i = 0; i < 7; i++) {
+    const g = new THREE.Group();
+    const col = new THREE.Color().setHSL(0.75 + Math.random() * 0.08, 0.6, 0.45 + Math.random() * 0.15);
+    const mat = new THREE.MeshLambertMaterial({ color: col });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), mat);
+    head.position.y = 0.6; g.add(head);
+    const eyeM = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), eyeM);
+      eye.position.set(sx * 0.22, 0.75, 0.4); g.add(eye);
+    }
+    const legs = [];
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 1.1, 5), mat);
+      leg.position.set(Math.cos(a) * 0.3, 0.0, Math.sin(a) * 0.3);
+      leg.rotation.z = Math.cos(a) * 0.5; leg.rotation.x = -Math.sin(a) * 0.5;
+      g.add(leg); legs.push(leg);
+    }
+    g.visible = false;
+    scene.add(g);
+    octos.push({ g, legs, speed: 0.8 + Math.random() * 1.5, off: Math.random() * 10 });
+  }
   // bolhas
   const bMat = new THREE.MeshBasicMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.6 });
   for (let i = 0; i < 20; i++) {
@@ -405,10 +429,12 @@ function setWorld(world) {
     for (const m of mounts) m.visible = !sea;
     for (const c of clouds) c.visible = !sea;
     for (const f of fishes) f.g.visible = sea;
+    for (const q of octos) q.g.visible = sea;
     for (const b of bubbles) b.m.visible = sea;
     for (const a of seaweeds) a.visible = sea;
     if (sea) {
       for (const f of fishes) f.g.position.set((Math.random() - 0.5) * 20, 1 + Math.random() * 4, S.pz - Math.random() * 120);
+      for (const q of octos) q.g.position.set((Math.random() - 0.5) * 16, 0.8 + Math.random() * 3.5, S.pz - Math.random() * 120);
       for (const b of bubbles) b.m.position.set((Math.random() - 0.5) * 14, Math.random() * 5, S.pz - Math.random() * 100);
       seaweeds.forEach((a, i) => {
         const side = i % 2 ? -1 : 1;
@@ -423,8 +449,9 @@ function enterSubmarine() {
   sub.active = false; sub.g.visible = false;
   for (const o of obstacles) { o.active = false; o.g.visible = false; }
   S.seaStart = S.dist;
+  S.py = 2.5; S.vy = 0; S.air = true; S.cannonFly = false;
   setWorld("sea");
-  setMsg("🛟 Luis entrou no SUBMARINO! Mergulhando no mundo subaquático 🐠🐙!");
+  setMsg("🐵🤿 Luis está NADANDO! SEGURE Espaço p/ subir, solte p/ descer! Desvie do 🦈🐙!");
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance("Mergulhando! Mundo submarino!");
@@ -443,6 +470,7 @@ function enterSubmarine() {
 function surfaceFromSea() {
   for (const o of obstacles) { o.active = false; o.g.visible = false; }
   S.subNext = S.dist + 250;
+  S.py = 0; S.vy = 0; S.air = false;
   setWorld("jungle");
   setMsg("🌴 Luis voltou à selva! Procure o próximo submarino 🛟!");
   try {
@@ -559,10 +587,17 @@ function spawnAhead() {
         addObstacle("snake", (Math.random() - 0.5) * 11, z - 10);
       }
     } else {
-      // 🌊 mundo submarino: tubarão / água-viva / mina (desvie!)
+      // 🌊 mundo submarino: fileira de bananas em altura de nado + tubarão / polvo / água-viva / mina!
+      if (Math.random() < 0.85) {
+        const bx = (Math.random() - 0.5) * 11;
+        const by = 1.5 + Math.random() * 3.2; // altura de nado 🐵🤿
+        const n = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) addBanana(bx, by + Math.sin(i * 0.9) * 0.5, z - i * 2.2);
+      }
       const roll = Math.random();
       if (roll < 0.35 + d * 0.2) {
-        const kind = Math.random() < 0.4 ? "shark" : (Math.random() < 0.5 ? "jelly" : "mine");
+        const r2 = Math.random();
+        const kind = r2 < 0.3 ? "shark" : (r2 < 0.55 ? "octo" : (r2 < 0.8 ? "jelly" : "mine"));
         addObstacle(kind, (Math.random() - 0.5) * 11, z - 6);
       }
     }
@@ -634,6 +669,23 @@ function addObstacle(kind, x, z) {
       s.rotation.z = -a; o.g.add(s);
     }
     o.vx = 0;
+  } else if (kind === "octo") {
+    const mat = new THREE.MeshLambertMaterial({ color: 0xa855f7 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.65, 12, 10), mat);
+    head.position.y = 2.2; head.castShadow = true; o.g.add(head);
+    const eyeM = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), eyeM);
+      eye.position.set(sx * 0.25, 2.35, 0.5); o.g.add(eye);
+    }
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2;
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 1.2, 5), mat);
+      leg.position.set(Math.cos(a) * 0.35, 1.4, Math.sin(a) * 0.35);
+      o.g.add(leg);
+    }
+    o.vy = 1 + Math.random();
+    o.vx = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random());
   } else {
     const mat = new THREE.MeshLambertMaterial({ color: 0x2f9e44 });
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), mat);
@@ -736,19 +788,30 @@ function update(dt) {
     S.nextPraise += 100;
   }
 
-  // pulo melhor: buffer (vale apertar um pouco antes) + altura variável
-  // toque rápido = pulinho · SEGURA = pulão que limpa o tronco com folga
+  // vertical: na selva = pulo · no mar = NADO 🤿 (segura p/ subir, solta p/ descer)
   const Jheld = keys[" "] || keys["arrowup"] || keys["w"];
-  if (S.jumpBuf && !S.air && performance.now() - S.jumpBufT < 250) {
-    S.vy = m.jumpV; S.air = true; S.jumpCut = false; S.jumpBuf = false;
-  }
-  if (S.jumpBuf && performance.now() - S.jumpBufT >= 250) S.jumpBuf = false;
-  if (S.air) {
-    if (!Jheld && S.vy > 2 && !S.jumpCut) { S.vy *= 0.45; S.jumpCut = true; } // soltou cedo = corta a subida
-    const gDown = S.cannonFly ? 5.5 : m.gravDown; // 🎯 voo de canhão: queda lenta p/ planar nas árvores 🪂
-    S.vy -= (S.vy > 0 ? m.gravUp : gDown) * dt;
+  const sea = S.world === "sea";
+  if (!sea) {
+    if (S.jumpBuf && !S.air && performance.now() - S.jumpBufT < 250) {
+      S.vy = m.jumpV; S.air = true; S.jumpCut = false; S.jumpBuf = false;
+    }
+    if (S.jumpBuf && performance.now() - S.jumpBufT >= 250) S.jumpBuf = false;
+    if (S.air) {
+      if (!Jheld && S.vy > 2 && !S.jumpCut) { S.vy *= 0.45; S.jumpCut = true; } // soltou cedo = corta a subida
+      const gDown = S.cannonFly ? 5.5 : m.gravDown; // 🎯 voo de canhão: queda lenta p/ planar nas árvores 🪂
+      S.vy -= (S.vy > 0 ? m.gravUp : gDown) * dt;
+      S.py += S.vy * dt;
+      if (S.py <= 0 || S.vy < -16) { S.py = 0; S.vy = 0; S.air = false; if (S.cannonFly) { S.cannonFly = false; setMsg("🐵 Luis pousou das árvores! Procure o próximo canhão 🎯!"); } } // pouso seco no chão
+    }
+  } else {
+    // 🤿 NADO: sobe segurando, desce soltando, com limites do mar
+    S.air = true; S.cannonFly = false; S.jumpBuf = false;
+    if (Jheld) S.vy += 14 * dt;
+    else S.vy -= 6 * dt;
+    S.vy = Math.max(-4, Math.min(5, S.vy));
     S.py += S.vy * dt;
-    if (S.py <= 0 || S.vy < -16) { S.py = 0; S.vy = 0; S.air = false; if (S.cannonFly) { S.cannonFly = false; setMsg("🐵 Luis pousou das árvores! Procure o próximo canhão 🎯!"); } } // pouso seco no chão
+    if (S.py < 0.4) { S.py = 0.4; S.vy = 0; }
+    if (S.py > 5.2) { S.py = 5.2; S.vy = 0; }
   }
   spawnAhead();
 
@@ -767,14 +830,26 @@ function update(dt) {
   // obstáculos
   for (const o of obstacles) {
     if (!o.active) continue;
-    if (o.kind === "snake" || o.kind === "shark") {
-      o.x += o.vx * dt;
+    if (o.kind === "snake" || o.kind === "shark" || o.kind === "octo") {
+      o.x += (o.vx || 0) * dt;
       if (o.x > 6.5) { o.x = 6.5; o.vx *= -1; }
       if (o.x < -6.5) { o.x = -6.5; o.vx *= -1; }
       o.g.position.x = o.x;
+      if (o.kind === "octo") o.g.position.y = Math.sin(performance.now() / 400 + o.z) * 0.5;
     }
     const dz = o.z - pz;
     if (dz > 15) { o.active = false; o.g.visible = false; continue; }
+    if (S.world === "sea") {
+      // 🤿 no mar o corpo do Luis está na altura do nado: colide pela altura real
+      const oy = o.kind === "octo" ? 2.2 : (o.kind === "jelly" ? 1.6 : 0.9);
+      if (Math.abs(dz) < 1.4 && Math.abs(o.x - px) < 1.2 && Math.abs(py - oy) < 1.2) {
+        if (o.kind === "shark") hurt("🦈 Tubarão!");
+        else if (o.kind === "octo") hurt("🐙 Polvo!");
+        else if (o.kind === "jelly") hurt("🪼 Água-viva!");
+        else hurt("💣 Mina submarina!");
+      }
+      continue;
+    }
     if (Math.abs(dz) < 1.3 && Math.abs(o.x - px) < (o.kind === "log" ? 4.6 : 1.1)) {
       if (o.kind === "log") { if (py < 0.9) hurt("🪵 Tronco! Pule com Espaço!"); }
       else if (o.kind === "spike") { if (py < 0.9) hurt("🌵 Espinhos!"); }
@@ -808,16 +883,28 @@ function update(dt) {
   }
   for (const t of trees) if (t.visible && t.position.z > pz + BEHIND) placeTree(t, pz - AHEAD - Math.random() * 20);
   for (const c of clouds) { c.position.x += dt * 0.7; if (c.position.x > 100) c.position.x = -100; }
-  // 🌊 vida marinha animada
+  // 🌊 vida marinha animada: peixes 🐟 + polvos 🐙 + bolhas + algas
   if (S.world === "sea") {
+    const tS = performance.now() / 1000;
     for (const f of fishes) {
-      f.g.position.x += Math.sin(t * 0.8 + f.off) * dt * 2;
+      f.g.position.x += Math.sin(tS * 0.8 + f.off) * dt * 2;
       f.g.position.z += f.speed * dt;
-      f.g.rotation.y = Math.sin(t * 2 + f.off) * 0.4;
+      f.g.rotation.y = Math.sin(tS * 2 + f.off) * 0.4;
       if (f.g.position.z > pz + 15) {
         f.g.position.z = pz - AHEAD - Math.random() * 20;
         f.g.position.x = (Math.random() - 0.5) * 20;
         f.g.position.y = 1 + Math.random() * 4;
+      }
+    }
+    for (const q of octos) {
+      q.g.position.z += q.speed * dt;
+      q.g.position.y += Math.sin(tS * 2 + q.off) * dt * 0.8;
+      q.g.rotation.y = Math.sin(tS + q.off) * 0.5;
+      q.legs.forEach((leg, i) => { leg.rotation.x = -Math.sin(tS * 4 + q.off + i) * 0.45; });
+      if (q.g.position.z > pz + 15) {
+        q.g.position.z = pz - AHEAD - Math.random() * 20;
+        q.g.position.x = (Math.random() - 0.5) * 16;
+        q.g.position.y = 0.8 + Math.random() * 3.5;
       }
     }
     for (const b of bubbles) {
@@ -829,7 +916,7 @@ function update(dt) {
       }
     }
     seaweeds.forEach((a, i) => {
-      a.rotation.z = Math.sin(t * 1.5 + i) * 0.15;
+      a.rotation.z = Math.sin(tS * 1.5 + i) * 0.15;
       if (a.position.z > pz + 15) {
         const side = i % 2 ? -1 : 1;
         a.position.z = pz - AHEAD - Math.random() * 20;
@@ -840,26 +927,37 @@ function update(dt) {
   sun.position.set(px - 18, 30, pz + 8);
   sun.target.position.set(px, 0, pz - 20); sun.target.updateMatrixWorld();
 
-  // câmera 1ª pessoa (olhos do Luis) — grudada no corpo, sem flutuar
+  // câmera 1ª pessoa: na selva = olhos do Luis · no mar = mergulho nadando 🤿
   const t = performance.now() / 1000;
-  const bob = S.air ? Math.sin(t * 3) * 0.02 : Math.sin(t * 11) * 0.06;
+  const seaCam = S.world === "sea";
+  const bob = seaCam ? Math.sin(t * 4) * 0.08 : (S.air ? Math.sin(t * 3) * 0.02 : Math.sin(t * 11) * 0.06);
   camera.position.set(px, 1.9 + py + bob, pz);
-  camera.lookAt(px * 0.92, 1.65 + py * 0.9, pz - 12);
+  camera.lookAt(px * 0.92, (seaCam ? 2.2 : 1.65) + py * 0.9, pz - 12);
   rig.position.copy(camera.position);
   rig.quaternion.copy(camera.quaternion);
-  armL.position.y = armR.position.y = -0.55 + (S.air ? 0.12 : Math.sin(t * 11) * 0.03);
-  chute.visible = S.air; // 🪂 abre ao pular
-  if (S.air) chute.rotation.z = Math.sin(t * 3) * 0.08;
+  if (seaCam) {
+    // braçadas de nado 🤿
+    armL.position.y = -0.55 + Math.sin(t * 6) * 0.15;
+    armR.position.y = -0.55 - Math.sin(t * 6) * 0.15;
+    armL.rotation.x = Math.sin(t * 6) * 0.4;
+    armR.rotation.x = -Math.sin(t * 6) * 0.4;
+  } else {
+    armL.rotation.x = armR.rotation.x = 0;
+    armL.position.y = armR.position.y = -0.55 + (S.air ? 0.12 : Math.sin(t * 11) * 0.03);
+  }
+  chute.visible = S.air && !seaCam; // 🪂 abre ao pular (na água esconde, ele nada!)
+  if (S.air && !seaCam) chute.rotation.z = Math.sin(t * 3) * 0.08;
 
   // HUD
   $("h-ban").textContent = `🍌 ${S.got}`;
   $("h-wal").textContent = `👛 ${wallet() + S.got}`;
   $("h-life").textContent = "❤️".repeat(Math.max(0, S.lives)) + "🤍".repeat(Math.max(0, m.lives - S.lives)) + (S.shield > 0 ? ` 🛡️x${S.shield}` : "");
   $("h-dist").textContent = `📏 ${S.dist}m`;
-  $("h-world").textContent = S.world === "sea" ? "🌊 Fundo do mar" : "🌴 Selva";
+  $("h-world").textContent = S.world === "sea" ? "🌊 Mar — NADANDO 🤿" : "🌴 Selva";
   try { $("h-sub").textContent = S.world === "sea" ? `🌊 volta em ${Math.max(0, 180 - (S.dist - S.seaStart))}m` : (sub && sub.active ? "🛟 SUB AQUI! ENTRE!" : `🛟 Sub: ${Math.max(0, S.subNext - S.dist)}m`); } catch {}
   try { $("h-can").textContent = S.cannonFly ? "🎯 VOOANDO! 🌳" : (can && can.active ? "🎯 CANHÃO AQUI! ENTRE!" : `🎯 Canhão: ${Math.max(0, S.cannonNext - S.dist)}m`); } catch {}
-  $("h-chute").style.display = S.air ? "inline" : "none";
+  if (S.world === "sea") { $("h-chute").style.display = "inline"; $("h-chute").textContent = "🤿 NADANDO (segura p/ subir!)"; }
+  else { $("h-chute").textContent = "🪂 PARAQUEDAS ABERTO"; $("h-chute").style.display = S.air ? "inline" : "none"; }
 }
 
 function bankRun() {
