@@ -42,12 +42,12 @@
     <div id="screen-start" class="overlay">
       <div class="big">🐵🎮</div>
       <h1>Luis, o Macaco — 3D em Primeira Pessoa</h1>
-      <p>Você <b>é o Luis</b>: corra pela selva realista sem fim!<br>⛔ Desvie de troncos, 🌵 espinhos e 🐍 cobras — <b>pule com Espaço</b> e o <b>paraquedas 🪂 abre sozinho</b>.<br>🍌 Bananas viram moeda na <b>loja</b>.<br>🎉 A cada <b>100m</b> o Luis fala <b>MUITO BEM!</b> 🔊</p>
+      <p>Você <b>é o Luis</b>: corra pela selva realista sem fim!<br>⛔ Desvie de troncos, 🌵 espinhos e 🐍 cobras — <b>pule com Espaço</b> e o <b>paraquedas 🪂 abre sozinho</b>.<br>🍌 Bananas viram moeda na <b>loja</b>.<br>🛟 A cada ~250m aparece um <b>SUBMARINO AMARELO</b>: <b>entre nele</b> para mergulhar no <b>mundo subaquático</b> 🐠!<br>🎯 A cada ~180m aparece um <b>CANHÃO 3D</b>: <b>entre nele</b> para ser jogado ao <b>alto, nas árvores</b> 🌳!<br>🎉 A cada <b>100m</b> o Luis fala <b>MUITO BEM!</b> 🔊</p>
       <input id="player" type="text" placeholder="Seu nome (ex: Alice)" maxlength="20" />
       <br />
       <button id="btn-start" class="btn">Entrar na selva ▶</button>
       <button id="btn-shop" class="btn sec">🛒 Loja (<span id="wallet-menu">0</span> 🍌)</button>
-      <p><small>Controles: ←/→ ou A/D para os lados · Espaço/↑/W pular · P pausar · Mouse não necessário</small></p>
+      <p><small>Controles: ←/→ ou A/D para os lados · <b>toque no Espaço/↑/W</b> = pulinho · <b>SEGURE</b> = pulão · P pausar · Mouse não necessário</small></p>
       <p><small>🏆 Recorde: <span id="best-start">—</span></small></p>
     </div>
 
@@ -64,6 +64,9 @@
         <span id="h-wal">👛 0</span>
         <span id="h-life">❤️❤️❤️</span>
         <span id="h-dist">📏 0m</span>
+        <span id="h-world">🌴 Selva</span>
+        <span id="h-sub">🛟 Sub: --</span>
+        <span id="h-can">🎯 Canhão: --</span>
         <span id="h-chute">🪂 PARAQUEDAS ABERTO</span>
         <span id="h-best">🏆 —</span>
       </div>
@@ -103,6 +106,14 @@ const SHOP = [
   { id: "magnet", icon: "🧲", name: "Imã de banana",  desc: "atrai bananas de longe",       cost: 40 },
   { id: "life",   icon: "❤️", name: "Coração extra",  desc: "começa com 4 vidas",           cost: 50 },
   { id: "shield", icon: "🛡️", name: "Escudo",         desc: "1 impacto grátis por corrida", cost: 60 },
+  { id: "spring", icon: "🥾", name: "Botas de Mola",  desc: "pulo bem mais alto",           cost: 35 },
+  { id: "slow",   icon: "⏱️", name: "Relógio da Selva", desc: "jogo 15% mais lento + menos obstáculos", cost: 45 },
+  { id: "lucky",  icon: "🍀", name: "Trevo da Sorte", desc: "bem mais bananas na selva",    cost: 55 },
+  { id: "ghost",  icon: "👻", name: "Capa Fantasma",  desc: "invencível por 3s após levar dano", cost: 70 },
+  { id: "double", icon: "🎒", name: "Mochila Dourada", desc: "cada banana vale 2x",         cost: 80 },
+  { id: "vest",   icon: "🦺", name: "Colete Extra",   desc: "+1 escudo (acumula c/ Escudo = 2)", cost: 90 },
+  { id: "heart2", icon: "💛", name: "Coração Gigante", desc: "começa com 5 vidas",          cost: 100 },
+  { id: "gold",   icon: "✨", name: "Luis Dourado",   desc: "bracinhos dourados estilosos", cost: 120 },
 ];
 function loadJSON(k, fb) { try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; } catch { return fb; } }
 function saveJSON(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -113,13 +124,18 @@ const best = () => loadJSON("luis_best_v1", null);
 const mods = () => {
   const o = owned();
   return {
-    speed: 11 * (o.shoes ? 1.2 : 1),
-    // pulo firme e rápido: sem flutuar (queda forte, voo curto)
-    jumpV: 6.5 + (o.chute ? 1.0 : 0),
-    gravUp: 22, gravDown: o.chute ? 8 : 11,
+    speed: 11 * (o.shoes ? 1.2 : 1) * (o.slow ? 0.85 : 1),
+    // pulo alto e firme: limpa os troncos com folga, sem flutuar
+    jumpV: 7.6 + (o.chute ? 1.0 : 0) + (o.spring ? 1.6 : 0),
+    gravUp: 20, gravDown: o.chute ? 7.5 : 10,
     magnet: o.magnet ? 2.6 : 1.3,
-    lives: o.life ? 4 : 3,
-    shield: !!o.shield,
+    lives: o.heart2 ? 5 : (o.life ? 4 : 3),
+    shield: (o.shield ? 1 : 0) + (o.vest ? 1 : 0),
+    invulnMs: o.ghost ? 3000 : 1500,
+    doubleBanana: !!o.double,
+    lucky: !!o.lucky,
+    slow: !!o.slow,
+    gold: !!o.gold,
   };
 };
 
@@ -160,8 +176,10 @@ function renderShop() {
 }
 
 // ---------- mundo 3D ----------
-let renderer, scene, camera, sun, rig, armL, armR, chute, chuteCords = [];
+let renderer, scene, camera, sun, hemi, rig, armL, armR, chute, chuteCords = [];
 let groundSegs = [], trees = [], clouds = [], mounts = [], bananas = [], obstacles = [];
+let sub = null, can = null, fishes = [], bubbles = [], seaweeds = [], sunBall = null;
+let grassMat = null, dirtMat = null;
 let S = null; // estado da corrida
 const keys = {};
 const AHEAD = 130, BEHIND = 20;
@@ -204,7 +222,8 @@ function initGL() {
 
   camera = new THREE.PerspectiveCamera(72, 960 / 540, 0.1, 400);
 
-  const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x2e5b34, 0.9);
+  const hemi2 = new THREE.HemisphereLight(0xcfe8ff, 0x2e5b34, 0.9);
+  hemi = hemi2;
   scene.add(hemi);
   sun = new THREE.DirectionalLight(0xfff2d9, 1.6);
   sun.position.set(-18, 30, 8);
@@ -217,17 +236,19 @@ function initGL() {
   scene.add(new THREE.AmbientLight(0xffffff, 0.15));
 
   // sol visível
-  const sunBall = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfff6c9, fog: false }));
+  sunBall = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfff6c9, fog: false }));
   sunBall.position.set(-40, 55, -180); scene.add(sunBall);
 
   // chão + trilha
   const grass = grassTexture(), dirt = dirtTexture();
+  grassMat = new THREE.MeshLambertMaterial({ map: grass });
+  dirtMat = new THREE.MeshLambertMaterial({ map: dirt });
   for (let i = 0; i < 8; i++) {
-    const seg = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshLambertMaterial({ map: grass }));
+    const seg = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), grassMat);
     seg.rotation.x = -Math.PI / 2; seg.receiveShadow = true;
     seg.position.set(0, 0, 15 - i * 30);
     scene.add(seg); groundSegs.push(seg);
-    const path = new THREE.Mesh(new THREE.PlaneGeometry(13, 30), new THREE.MeshLambertMaterial({ map: dirt }));
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(13, 30), dirtMat);
     path.rotation.x = -Math.PI / 2; path.position.set(0, 0.02, 15 - i * 30); path.receiveShadow = true;
     scene.add(path); seg.userData.path = path;
   }
@@ -298,6 +319,9 @@ function initGL() {
   chute.visible = false;
   rig.add(chute);
 
+  buildSubmarine();
+  buildCannon();
+  buildSeaLife();
   resetRun();
 }
 
@@ -308,26 +332,241 @@ function placeTree(g, z) {
   g.scale.set(s, s, s);
 }
 
+// ---------- 🛟 SUBMARINO + 🌊 OUTRO MUNDO (fundo do mar) ----------
+function buildSubmarine() {
+  const g = new THREE.Group();
+  const yellow = new THREE.MeshLambertMaterial({ color: 0xffc21f });
+  const dark = new THREE.MeshLambertMaterial({ color: 0x334155 });
+  const glass = new THREE.MeshLambertMaterial({ color: 0x7dd3fc, emissive: 0x0ea5e9, emissiveIntensity: 0.4 });
+  const hull = new THREE.Mesh(new THREE.CapsuleGeometry(1.1, 3.2, 6, 12), yellow);
+  hull.rotation.z = Math.PI / 2; hull.position.y = 1.4; hull.castShadow = true; g.add(hull);
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 1.0, 10), yellow);
+  tower.position.set(0.3, 2.6, 0); g.add(tower);
+  const peri = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.9, 8), dark);
+  peri.position.set(0.3, 3.3, 0); g.add(peri);
+  for (let i = -1; i <= 1; i++) {
+    const win = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 10), glass);
+    win.position.set(i * 1.2, 1.5, 1.05); g.add(win);
+  }
+  const prop = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 8, 14), dark);
+  prop.position.set(-2.8, 1.4, 0); prop.rotation.y = Math.PI / 2; g.add(prop);
+  g.userData.prop = prop;
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff6c9 }));
+  lamp.position.set(2.8, 1.4, 0); g.add(lamp);
+  g.visible = false;
+  scene.add(g);
+  sub = { g, active: false, x: 0, z: 0 };
+}
+
+function buildSeaLife() {
+  // peixes coloridos
+  for (let i = 0; i < 14; i++) {
+    const g = new THREE.Group();
+    const col = new THREE.Color().setHSL(Math.random(), 0.7, 0.55);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshLambertMaterial({ color: col }));
+    body.scale.set(1, 0.8, 1.8); g.add(body);
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.6, 6), new THREE.MeshLambertMaterial({ color: col }));
+    tail.rotation.x = -Math.PI / 2; tail.position.z = 1.0; g.add(tail);
+    g.visible = false;
+    scene.add(g);
+    fishes.push({ g, speed: 1 + Math.random() * 2, off: Math.random() * 10 });
+  }
+  // bolhas
+  const bMat = new THREE.MeshBasicMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.6 });
+  for (let i = 0; i < 20; i++) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.12 + Math.random() * 0.15, 8, 6), bMat);
+    b.visible = false;
+    scene.add(b);
+    bubbles.push({ m: b, speed: 1.5 + Math.random() * 2 });
+  }
+  // algas
+  for (let i = 0; i < 24; i++) {
+    const h = 1.5 + Math.random() * 2;
+    const a = new THREE.Mesh(new THREE.ConeGeometry(0.3, h, 6), new THREE.MeshLambertMaterial({ color: 0x16a34a }));
+    a.visible = false;
+    scene.add(a);
+    seaweeds.push(a);
+  }
+}
+
+function setWorld(world) {
+  S.world = world;
+  const sea = world === "sea";
+  try {
+    scene.background.set(sea ? 0x0a3d62 : 0x87bfe8);
+    scene.fog.color.set(sea ? 0x0a4d7a : 0x9fc78f);
+    scene.fog.density = sea ? 0.022 : 0.016;
+    if (hemi) hemi.intensity = sea ? 0.6 : 0.9;
+    if (sun) sun.intensity = sea ? 0.9 : 1.6;
+    if (sunBall) sunBall.visible = !sea;
+    grassMat.color.set(sea ? 0x3b82a6 : 0xffffff);
+    dirtMat.color.set(sea ? 0xc2b280 : 0xffffff);
+    for (const t of trees) t.visible = !sea;
+    for (const m of mounts) m.visible = !sea;
+    for (const c of clouds) c.visible = !sea;
+    for (const f of fishes) f.g.visible = sea;
+    for (const b of bubbles) b.m.visible = sea;
+    for (const a of seaweeds) a.visible = sea;
+    if (sea) {
+      for (const f of fishes) f.g.position.set((Math.random() - 0.5) * 20, 1 + Math.random() * 4, S.pz - Math.random() * 120);
+      for (const b of bubbles) b.m.position.set((Math.random() - 0.5) * 14, Math.random() * 5, S.pz - Math.random() * 100);
+      seaweeds.forEach((a, i) => {
+        const side = i % 2 ? -1 : 1;
+        a.position.set(side * (8 + Math.random() * 6), 1, S.pz - Math.random() * 130);
+      });
+    }
+  } catch {}
+}
+
+function enterSubmarine() {
+  if (!sub || !sub.active || S.world !== "jungle") return;
+  sub.active = false; sub.g.visible = false;
+  for (const o of obstacles) { o.active = false; o.g.visible = false; }
+  S.seaStart = S.dist;
+  setWorld("sea");
+  setMsg("🛟 Luis entrou no SUBMARINO! Mergulhando no mundo subaquático 🐠🐙!");
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance("Mergulhando! Mundo submarino!");
+    u.lang = "pt-BR"; u.rate = 1.05; u.pitch = 1.2;
+    speechSynthesis.speak(u);
+  } catch {}
+  try {
+    const el = $("praise");
+    el.textContent = "🛟🌊 MERGULHANDO! 🐠";
+    el.classList.add("show");
+    if (praiseTimer) clearTimeout(praiseTimer);
+    praiseTimer = setTimeout(hidePraise, 2200);
+  } catch {}
+}
+
+function surfaceFromSea() {
+  for (const o of obstacles) { o.active = false; o.g.visible = false; }
+  S.subNext = S.dist + 250;
+  setWorld("jungle");
+  setMsg("🌴 Luis voltou à selva! Procure o próximo submarino 🛟!");
+  try {
+    const el = $("praise");
+    el.textContent = "🌴 DE VOLTA À SELVA! 🐵";
+    el.classList.add("show");
+    if (praiseTimer) clearTimeout(praiseTimer);
+    praiseTimer = setTimeout(hidePraise, 2200);
+  } catch {}
+}
+
+// ---------- 🎯 CANHÃO 3D: joga o Luis para o alto, no meio das árvores ----------
+function buildCannon() {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshLambertMaterial({ color: 0x6e4a26 });
+  const metal = new THREE.MeshLambertMaterial({ color: 0x1f2937 });
+  const gold = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.6, 2.4), wood);
+  base.position.y = 0.3; base.castShadow = true; g.add(base);
+  for (const sx of [-1, 1]) {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.3, 12), wood);
+    wheel.rotation.z = Math.PI / 2; wheel.position.set(sx * 1.3, 0.55, 0); g.add(wheel);
+  }
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 3.2, 14), metal);
+  barrel.position.set(0, 1.8, 0); barrel.rotation.x = -0.5; barrel.castShadow = true; g.add(barrel);
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.15, 8, 16), gold);
+  mouth.position.set(0, 3.1, -0.75); mouth.rotation.x = -0.5; g.add(mouth);
+  const fuse = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+  fuse.position.set(0.6, 2.2, 0.6); g.add(fuse);
+  g.userData.fuse = fuse;
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.7, 0.15), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+  sign.position.set(0, 3.6, 0); g.add(sign);
+  g.visible = false;
+  scene.add(g);
+  can = { g, active: false, x: 0, z: 0 };
+}
+
+function fireCannon() {
+  if (!can || !can.active || S.world !== "jungle" || S.cannonFly) return;
+  can.active = false; can.g.visible = false;
+  S.cannonNext = S.dist + 180 + Math.random() * 80;
+  // 🚀 lança o Luis bem alto em 3D, por cima das copas das árvores!
+  S.vy = Math.max(mods().jumpV + 9.5, 17);
+  S.air = true; S.jumpCut = true; S.cannonFly = true;
+  S.invulnUntil = performance.now() + 4500;
+  // chuva de bananas no céu para pegar voando
+  for (let i = 0; i < 9; i++) addBanana(S.px + (Math.random() - 0.5) * 4, 6 + i * 1.1, S.pz - 8 - i * 3);
+  setMsg("🎯 BOOM! O canhão jogou o Luis para as árvores! 🐵🌳🪂");
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance("Uhuu! Voando nas árvores!");
+    u.lang = "pt-BR"; u.rate = 1.1; u.pitch = 1.3;
+    speechSynthesis.speak(u);
+  } catch {}
+  try {
+    const el = $("praise");
+    el.textContent = "🎯🌳 VOO NAS ÁRVORES! 🐵";
+    el.classList.add("show");
+    if (praiseTimer) clearTimeout(praiseTimer);
+    praiseTimer = setTimeout(hidePraise, 2200);
+  } catch {}
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) {
+      const c = new Ctx();
+      const t = c.currentTime;
+      const o = c.createOscillator(), gn = c.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(120, t);
+      o.frequency.exponentialRampToValueAtTime(900, t + 0.35);
+      gn.gain.setValueAtTime(0.25, t);
+      gn.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      o.connect(gn).connect(c.destination); o.start(t); o.stop(t + 0.55);
+      setTimeout(() => c.close(), 800);
+    }
+  } catch {}
+}
+
 // ---------- spawning infinito ----------
 function spawnAhead() {
   const m = mods();
   const d = Math.min(1, S.dist / 900); // dificuldade
+  const sea = S.world === "sea";
   while (S.nextZ > S.pz - AHEAD) {
     const z = S.nextZ;
-    // bananas em arco
-    if (Math.random() < 0.75) {
+    // bananas em arco (🍀 Trevo = mais bananas e arcos maiores)
+    if (Math.random() < (m.lucky ? 0.92 : 0.75)) {
       const bx = (Math.random() - 0.5) * 11;
-      const n = 3 + Math.floor(Math.random() * 3);
+      const n = (3 + Math.floor(Math.random() * 3)) + (m.lucky ? 2 : 0);
       for (let i = 0; i < n; i++) addBanana(bx, 1.1 + Math.sin((i / (n - 1)) * Math.PI) * 1.4, z - i * 2.2);
     }
-    // obstáculos: tronco (pular) / espinho / cobra
-    const roll = Math.random();
-    if (S.dist > 30 && roll < 0.3 + d * 0.25) {
-      addObstacle(Math.random() < 0.5 ? "log" : (Math.random() < 0.5 ? "spike" : "snake"), (Math.random() - 0.5) * 11, z - 6);
-    } else if (S.dist > 120 && roll > 0.85) {
-      addObstacle("snake", (Math.random() - 0.5) * 11, z - 10);
+    if (!sea) {
+      // 🛟 submarino a cada ~250m na selva (portal para o outro mundo)
+      if (S.dist > 60 && S.dist >= S.subNext) {
+        if (sub && !sub.active) {
+          sub.active = true; sub.x = 0; sub.z = z - 8;
+          sub.g.visible = true; sub.g.position.set(0, 0, z - 8);
+        }
+        S.subNext = S.dist + 250 + Math.random() * 80;
+      }
+      // 🎯 canhão 3D a cada ~180m na selva (jogou, voou p/ as árvores!)
+      if (S.dist > 80 && S.dist >= S.cannonNext) {
+        if (can && !can.active && (!sub || !sub.active || Math.abs(z - sub.z) > 20)) {
+          can.active = true; can.x = (Math.random() - 0.5) * 8; can.z = z - 10;
+          can.g.visible = true; can.g.position.set(can.x, 0, can.z);
+        }
+        S.cannonNext = S.dist + 180 + Math.random() * 80;
+      }
+      // obstáculos: tronco (pular) / espinho / cobra (⏱️ Relógio = menos obstáculos + mais espaço)
+      const roll = Math.random();
+      const chance = (0.3 + d * 0.25) * (m.slow ? 0.7 : 1);
+      if (S.dist > 30 && roll < chance) {
+        addObstacle(Math.random() < 0.5 ? "log" : (Math.random() < 0.5 ? "spike" : "snake"), (Math.random() - 0.5) * 11, z - 6);
+      } else if (S.dist > 120 && roll > (m.slow ? 0.92 : 0.85)) {
+        addObstacle("snake", (Math.random() - 0.5) * 11, z - 10);
+      }
+    } else {
+      // 🌊 mundo submarino: tubarão / água-viva / mina (desvie!)
+      const roll = Math.random();
+      if (roll < 0.35 + d * 0.2) {
+        const kind = Math.random() < 0.4 ? "shark" : (Math.random() < 0.5 ? "jelly" : "mine");
+        addObstacle(kind, (Math.random() - 0.5) * 11, z - 6);
+      }
     }
-    S.nextZ -= 14 + Math.random() * 12 - d * 4;
+    S.nextZ -= 14 + Math.random() * 12 - d * 4 + (m.slow ? 4 : 0);
   }
 }
 function addBanana(x, y, z) {
@@ -367,6 +606,34 @@ function addObstacle(kind, x, z) {
       const c = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 7), mat);
       c.position.set(i * 0.9, 0.8, 0); c.castShadow = true; o.g.add(c);
     }
+  } else if (kind === "shark") {
+    const mat = new THREE.MeshLambertMaterial({ color: 0x64748b });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), mat);
+    body.scale.set(1, 0.9, 2.8); body.position.y = 0.9; body.castShadow = true; o.g.add(body);
+    const fin = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.0, 4), mat);
+    fin.position.set(0, 1.7, 0); o.g.add(fin);
+    o.vx = (Math.random() < 0.5 ? -1 : 1) * (1.5 + Math.random() * 1.5);
+  } else if (kind === "jelly") {
+    const mat = new THREE.MeshLambertMaterial({ color: 0xf0abfc, transparent: true, opacity: 0.9 });
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+    bell.position.y = 1.6; o.g.add(bell);
+    for (let i = 0; i < 4; i++) {
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.0, 5), mat);
+      t.position.set((i - 1.5) * 0.25, 0.9, 0); o.g.add(t);
+    }
+    o.vx = 0;
+  } else if (kind === "mine") {
+    const mat = new THREE.MeshLambertMaterial({ color: 0x1f2937 });
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.7, 10, 8), mat);
+    ball.position.y = 0.8; ball.castShadow = true; o.g.add(ball);
+    const spikeM = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+    for (let i = 0; i < 6; i++) {
+      const s = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.5, 5), spikeM);
+      const a = (i / 6) * Math.PI * 2;
+      s.position.set(Math.cos(a) * 0.7, 0.8 + Math.sin(a) * 0.4, Math.sin(a) * 0.7);
+      s.rotation.z = -a; o.g.add(s);
+    }
+    o.vx = 0;
   } else {
     const mat = new THREE.MeshLambertMaterial({ color: 0x2f9e44 });
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), mat);
@@ -381,11 +648,22 @@ function addObstacle(kind, x, z) {
 // ---------- corrida ----------
 function resetRun() {
   const m = mods();
-  S = { px: 0, pz: 0, py: 0, vy: 0, air: false, jumpBuf: false, nextZ: -20, dist: 0, got: 0, lives: m.lives, shield: m.shield, t0: performance.now(), elapsed: 0, paused: false, over: false, invulnUntil: 0, maxSpeed: m.speed, nextPraise: 100 };
+  S = { px: 0, pz: 0, py: 0, vy: 0, air: false, jumpBuf: false, jumpBufT: 0, jumpCut: false, cannonFly: false, nextZ: -20, dist: 0, got: 0, lives: m.lives, shield: m.shield, world: "jungle", subNext: 200, cannonNext: 130, seaStart: 0, t0: performance.now(), elapsed: 0, paused: false, over: false, invulnUntil: 0, maxSpeed: m.speed, nextPraise: 100 };
   for (const b of bananas) { b.active = false; b.mesh.visible = false; }
   for (const o of obstacles) { o.active = false; o.g.visible = false; }
+  if (sub) { sub.active = false; sub.g.visible = false; }
+  if (can) { can.active = false; can.g.visible = false; }
+  setWorld("jungle");
+  // ✨ Luis Dourado: bracinhos dourados
+  try {
+    const goldCol = m.gold ? 0xd4af37 : 0x6b4a2f;
+    for (const arm of [armL, armR]) {
+      if (!arm) continue;
+      arm.traverse((o) => { if (o.isMesh && o.material && o.material.color && o.geometry && o.geometry.type === "CapsuleGeometry") o.material = new THREE.MeshLambertMaterial({ color: goldCol }); });
+    }
+  } catch {}
   hidePraise();
-  setMsg("Você é o Luis 🐵 — pule os troncos e plane de paraquedas! 🪂");
+  setMsg("Você é o Luis 🐵 — SEGURE o Espaço p/ o pulão limpar o tronco! 🪂");
 }
 function setMsg(t) { $("msg").textContent = t; }
 
@@ -428,8 +706,10 @@ function praiseLuis(metros) {
 function hurt(msg) {
   const now = performance.now();
   if (now < S.invulnUntil || S.over) return;
-  if (S.shield) { S.shield = false; S.invulnUntil = now + 1500; setMsg("🛡️ Escudo salvou o Luis!"); return; }
-  S.lives--; S.invulnUntil = now + 1500;
+  const m = mods();
+  const inv = m.invulnMs || 1500;
+  if (S.shield > 0) { S.shield--; S.invulnUntil = now + inv; setMsg(`🛡️ Escudo salvou o Luis! (${S.shield} restantes)`); return; }
+  S.lives--; S.invulnUntil = now + inv;
   setMsg(msg + ` (vidas: ${S.lives})`);
   if (S.lives <= 0) gameOver();
 }
@@ -456,13 +736,19 @@ function update(dt) {
     S.nextPraise += 100;
   }
 
-  // pulo firme: só pula num toque novo (segurar não deixa flutuando)
-  if (S.jumpBuf && !S.air) { S.vy = m.jumpV; S.air = true; S.jumpBuf = false; }
-  if (!S.air) S.jumpBuf = false;
+  // pulo melhor: buffer (vale apertar um pouco antes) + altura variável
+  // toque rápido = pulinho · SEGURA = pulão que limpa o tronco com folga
+  const Jheld = keys[" "] || keys["arrowup"] || keys["w"];
+  if (S.jumpBuf && !S.air && performance.now() - S.jumpBufT < 250) {
+    S.vy = m.jumpV; S.air = true; S.jumpCut = false; S.jumpBuf = false;
+  }
+  if (S.jumpBuf && performance.now() - S.jumpBufT >= 250) S.jumpBuf = false;
   if (S.air) {
-    S.vy -= (S.vy > 0 ? m.gravUp : m.gravDown) * dt; // queda forte = sem flutuar
+    if (!Jheld && S.vy > 2 && !S.jumpCut) { S.vy *= 0.45; S.jumpCut = true; } // soltou cedo = corta a subida
+    const gDown = S.cannonFly ? 5.5 : m.gravDown; // 🎯 voo de canhão: queda lenta p/ planar nas árvores 🪂
+    S.vy -= (S.vy > 0 ? m.gravUp : gDown) * dt;
     S.py += S.vy * dt;
-    if (S.py <= 0 || S.vy < -14) { S.py = 0; S.vy = 0; S.air = false; } // pouso seco no chão
+    if (S.py <= 0 || S.vy < -16) { S.py = 0; S.vy = 0; S.air = false; if (S.cannonFly) { S.cannonFly = false; setMsg("🐵 Luis pousou das árvores! Procure o próximo canhão 🎯!"); } } // pouso seco no chão
   }
   spawnAhead();
 
@@ -475,13 +761,13 @@ function update(dt) {
     if (dz > 15 || dz < -8) { if (dz > 15) { b.active = false; b.mesh.visible = false; } continue; }
     const dx = b.x - px, dy = b.y - (py + 1.6);
     if (Math.hypot(dx, dz) < m.magnet && Math.abs(dy) < 1.8) {
-      b.active = false; b.mesh.visible = false; S.got++;
+      b.active = false; b.mesh.visible = false; S.got += (m.doubleBanana ? 2 : 1);
     }
   }
   // obstáculos
   for (const o of obstacles) {
     if (!o.active) continue;
-    if (o.kind === "snake") {
+    if (o.kind === "snake" || o.kind === "shark") {
       o.x += o.vx * dt;
       if (o.x > 6.5) { o.x = 6.5; o.vx *= -1; }
       if (o.x < -6.5) { o.x = -6.5; o.vx *= -1; }
@@ -492,16 +778,65 @@ function update(dt) {
     if (Math.abs(dz) < 1.3 && Math.abs(o.x - px) < (o.kind === "log" ? 4.6 : 1.1)) {
       if (o.kind === "log") { if (py < 0.9) hurt("🪵 Tronco! Pule com Espaço!"); }
       else if (o.kind === "spike") { if (py < 0.9) hurt("🌵 Espinhos!"); }
+      else if (o.kind === "shark") { if (py < 1.0) hurt("🦈 Tubarão!"); }
+      else if (o.kind === "jelly") { if (py < 1.2) hurt("🪼 Água-viva!"); }
+      else if (o.kind === "mine") { if (py < 0.9) hurt("💣 Mina submarina!"); }
       else { if (py < 1.0) hurt("🐍 Cobra!"); }
     }
   }
+  // 🛟 submarino: encostou = entra e vai para o outro mundo
+  if (sub && sub.active) {
+    sub.g.rotation.y += dt * 0.5;
+    if (sub.g.userData.prop) sub.g.userData.prop.rotation.x += dt * 8;
+    const dzs = sub.z - pz;
+    if (dzs > 20) { sub.active = false; sub.g.visible = false; }
+    else if (Math.abs(dzs) < 2.2 && Math.abs(sub.x - px) < 2.2) enterSubmarine();
+  }
+  // 🎯 canhão 3D: encostou = BOOM, voa p/ as árvores!
+  if (can && can.active) {
+    if (can.g.userData.fuse) can.g.userData.fuse.scale.setScalar(1 + Math.sin(performance.now() / 100) * 0.25);
+    const dzc = can.z - pz;
+    if (dzc > 20) { can.active = false; can.g.visible = false; }
+    else if (Math.abs(dzc) < 2.2 && Math.abs(can.x - px) < 2.2) fireCannon();
+  }
+  // 🌊 volta automática à selva após ~180m de mergulho
+  if (S.world === "sea" && S.dist - S.seaStart > 180) surfaceFromSea();
 
   // recicla cenário
   for (const s of groundSegs) {
     if (s.position.z > pz + 30) { s.position.z -= 240; s.userData.path.position.z = s.position.z; }
   }
-  for (const t of trees) if (t.position.z > pz + BEHIND) placeTree(t, pz - AHEAD - Math.random() * 20);
+  for (const t of trees) if (t.visible && t.position.z > pz + BEHIND) placeTree(t, pz - AHEAD - Math.random() * 20);
   for (const c of clouds) { c.position.x += dt * 0.7; if (c.position.x > 100) c.position.x = -100; }
+  // 🌊 vida marinha animada
+  if (S.world === "sea") {
+    for (const f of fishes) {
+      f.g.position.x += Math.sin(t * 0.8 + f.off) * dt * 2;
+      f.g.position.z += f.speed * dt;
+      f.g.rotation.y = Math.sin(t * 2 + f.off) * 0.4;
+      if (f.g.position.z > pz + 15) {
+        f.g.position.z = pz - AHEAD - Math.random() * 20;
+        f.g.position.x = (Math.random() - 0.5) * 20;
+        f.g.position.y = 1 + Math.random() * 4;
+      }
+    }
+    for (const b of bubbles) {
+      b.m.position.y += b.speed * dt;
+      if (b.m.position.y > 6) {
+        b.m.position.y = 0.3;
+        b.m.position.z = pz - Math.random() * 100;
+        b.m.position.x = (Math.random() - 0.5) * 14;
+      }
+    }
+    seaweeds.forEach((a, i) => {
+      a.rotation.z = Math.sin(t * 1.5 + i) * 0.15;
+      if (a.position.z > pz + 15) {
+        const side = i % 2 ? -1 : 1;
+        a.position.z = pz - AHEAD - Math.random() * 20;
+        a.position.x = side * (8 + Math.random() * 6);
+      }
+    });
+  }
   sun.position.set(px - 18, 30, pz + 8);
   sun.target.position.set(px, 0, pz - 20); sun.target.updateMatrixWorld();
 
@@ -519,8 +854,11 @@ function update(dt) {
   // HUD
   $("h-ban").textContent = `🍌 ${S.got}`;
   $("h-wal").textContent = `👛 ${wallet() + S.got}`;
-  $("h-life").textContent = "❤️".repeat(Math.max(0, S.lives)) + "🤍".repeat(Math.max(0, m.lives - S.lives)) + (S.shield ? " 🛡️" : "");
+  $("h-life").textContent = "❤️".repeat(Math.max(0, S.lives)) + "🤍".repeat(Math.max(0, m.lives - S.lives)) + (S.shield > 0 ? ` 🛡️x${S.shield}` : "");
   $("h-dist").textContent = `📏 ${S.dist}m`;
+  $("h-world").textContent = S.world === "sea" ? "🌊 Fundo do mar" : "🌴 Selva";
+  try { $("h-sub").textContent = S.world === "sea" ? `🌊 volta em ${Math.max(0, 180 - (S.dist - S.seaStart))}m` : (sub && sub.active ? "🛟 SUB AQUI! ENTRE!" : `🛟 Sub: ${Math.max(0, S.subNext - S.dist)}m`); } catch {}
+  try { $("h-can").textContent = S.cannonFly ? "🎯 VOOANDO! 🌳" : (can && can.active ? "🎯 CANHÃO AQUI! ENTRE!" : `🎯 Canhão: ${Math.max(0, S.cannonNext - S.dist)}m`); } catch {}
   $("h-chute").style.display = S.air ? "inline" : "none";
 }
 
@@ -575,8 +913,8 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
   keys[k] = true;
   if (e.code === "Space") keys[" "] = true; // garante o pulo em qualquer layout de teclado
-  // toque novo de pulo (ignora repetição ao segurar): sem flutuar
-  if (!e.repeat && (e.code === "Space" || k === "arrowup" || k === "w") && S && !S.air) S.jumpBuf = true;
+  // toque novo de pulo (ignora repetição ao segurar): com buffer de 250ms
+  if (!e.repeat && (e.code === "Space" || k === "arrowup" || k === "w") && S) { S.jumpBuf = true; S.jumpBufT = performance.now(); }
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k) || e.code === "Space") e.preventDefault();
   if (k === "p") togglePause();
 });
@@ -586,7 +924,7 @@ window.addEventListener("keyup", (e) => {
 });
 function bindHold(id, key) {
   const el = $(id);
-  const on = (e) => { e.preventDefault(); keys[key] = true; if (key === " " && S && !S.air) S.jumpBuf = true; };
+  const on = (e) => { e.preventDefault(); keys[key] = true; if (key === " " && S) { S.jumpBuf = true; S.jumpBufT = performance.now(); } };
   const off = (e) => { e.preventDefault(); keys[key] = false; };
   el.addEventListener("pointerdown", on);
   el.addEventListener("pointerup", off);
